@@ -37,7 +37,11 @@ export function AuthProvider({ children, initialUser }: { children: ReactNode; i
     }
   }
 
-  const logout = () => setUser(null)
+  const logout = () => {
+    // Limpiar token JWT del localStorage (modo web)
+    localStorage.removeItem('speeddansys_token')
+    setUser(null)
+  }
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>

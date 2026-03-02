@@ -18,19 +18,26 @@ datasource db {
 
 model Role {
   id          Int      @id @default(autoincrement())
-  nombre      String   @unique
+  nombre      String
   descripcion String?
   permisos    String   @default("[]") // JSON array de permisos
   activo      Boolean  @default(true)
   users       User[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Multi-tenancy: null = desktop (DB privada), Int = empresa web
+  empresaId Int?
+  empresa   Emisor? @relation("RolEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, nombre])
+  @@index([empresaId])
 }
 
 model User {
   id           Int       @id @default(autoincrement())
   nombre       String
-  username     String    @unique
+  username     String
   passwordHash String
   correo       String?
   roleId       Int
@@ -41,6 +48,13 @@ model User {
   colorCustom  String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("UserEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, username])
+  @@index([empresaId])
 }
 
 // ═══════════════════════════════════════
@@ -51,8 +65,8 @@ model Emisor {
   id                   Int        @id @default(autoincrement())
   nombre               String
   nombreComercial      String?
-  nit                  String     @unique
-  nrc                  String     @unique
+  nit                  String
+  nrc                  String
   codActividad         String
   descActividad        String
   tipoEstablecimiento  String
@@ -67,9 +81,25 @@ model Emisor {
   certPath             String?
   certPassword         String?
   modoSimulacion       Boolean    @default(false)
+  licenseKey           String?    @unique  // mapea license_key → empresa en versión web
   sucursales           Sucursal[]
   createdAt            DateTime   @default(now())
   updatedAt            DateTime   @updatedAt
+
+  // Relaciones inversas (multi-tenancy)
+  roles           Role[]           @relation("RolEmpresa")
+  users           User[]           @relation("UserEmpresa")
+  clientes        Cliente[]        @relation("ClienteEmpresa")
+  proveedores     Proveedor[]      @relation("ProveedorEmpresa")
+  empleados       Empleado[]       @relation("EmpleadoEmpresa")
+  categorias      Categoria[]      @relation("CategoriaEmpresa")
+  productos       Producto[]       @relation("ProductoEmpresa")
+  compras         Compra[]         @relation("CompraEmpresa")
+  facturas        Factura[]        @relation("FacturaEmpresa")
+  categoriasGasto CategoriaGasto[] @relation("CategoriaGastoEmpresa")
+  planillas       Planilla[]       @relation("PlanillaEmpresa")
+  configPlanilla  ConfigPlanilla[] @relation("ConfigPlanillaEmpresa")
+  appConfigs      AppConfig[]      @relation("AppConfigEmpresa")
 }
 
 model Sucursal {
@@ -122,7 +152,12 @@ model Cliente {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  @@unique([tipoDocumento, numDocumento])
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("ClienteEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, tipoDocumento, numDocumento])
+  @@index([empresaId])
 }
 
 // ═══════════════════════════════════════
@@ -132,7 +167,7 @@ model Cliente {
 model Proveedor {
   id              Int      @id @default(autoincrement())
   nombre          String
-  nit             String?  @unique
+  nit             String?
   nrc             String?
   correo          String?
   telefono        String?
@@ -146,6 +181,13 @@ model Proveedor {
   compras         Compra[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("ProveedorEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, nit])
+  @@index([empresaId])
 }
 
 // ═══════════════════════════════════════
@@ -155,7 +197,7 @@ model Proveedor {
 model Empleado {
   id              Int       @id @default(autoincrement())
   nombre          String
-  dui             String?   @unique
+  dui             String?
   nit             String?
   correo          String?
   telefono        String?
@@ -168,6 +210,13 @@ model Empleado {
   activo          Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("EmpleadoEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, dui])
+  @@index([empresaId])
 }
 
 // ═══════════════════════════════════════
@@ -176,14 +225,21 @@ model Empleado {
 
 model Categoria {
   id        Int        @id @default(autoincrement())
-  nombre    String     @unique
+  nombre    String
   activa    Boolean    @default(true)
   productos Producto[]
+
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("CategoriaEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, nombre])
+  @@index([empresaId])
 }
 
 model Producto {
   id              Int              @id @default(autoincrement())
-  codigo          String           @unique
+  codigo          String
   nombre          String
   descripcion     String?
   categoriaId     Int?
@@ -202,6 +258,13 @@ model Producto {
   detallesCompra  DetalleCompra[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("ProductoEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId])
 }
 
 model Kardex {
@@ -241,6 +304,12 @@ model Compra {
   detalles        DetalleCompra[]
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("CompraEmpresa", fields: [empresaId], references: [id])
+
+  @@index([empresaId])
 }
 
 model DetalleCompra {
@@ -269,6 +338,12 @@ model CategoriaGasto {
   gastos      GastoInterno[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("CategoriaGastoEmpresa", fields: [empresaId], references: [id])
+
+  @@index([empresaId])
 }
 
 model GastoInterno {
@@ -319,29 +394,36 @@ model Factura {
   condicionPago          String           @default("1")
   plazoCredito           Int?
   notas                  String?
+  simulada               Boolean          @default(false)  // marcada si se emitió en modo simulación
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
+
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("FacturaEmpresa", fields: [empresaId], references: [id])
+
+  @@index([empresaId])
 }
 
 model DetalleFactura {
-  id            Int       @id @default(autoincrement())
-  facturaId     Int
-  factura       Factura   @relation(fields: [facturaId], references: [id])
-  productoId    Int?
-  producto      Producto? @relation(fields: [productoId], references: [id])
-  numItem       Int
-  tipoItem      Int
-  codigo        String?
-  descripcion   String
-  cantidad      Decimal
-  uniMedida     Int
+  id             Int       @id @default(autoincrement())
+  facturaId      Int
+  factura        Factura   @relation(fields: [facturaId], references: [id])
+  productoId     Int?
+  producto       Producto? @relation(fields: [productoId], references: [id])
+  numItem        Int
+  tipoItem       Int
+  codigo         String?
+  descripcion    String
+  cantidad       Decimal
+  uniMedida      Int
   precioUnitario Decimal
-  descuento     Decimal   @default(0)
-  esGravado     Boolean   @default(true)
-  ventaNoSuj    Decimal   @default(0)
-  ventaExenta   Decimal   @default(0)
-  ventaGravada  Decimal   @default(0)
-  ivaItem       Decimal   @default(0)
+  descuento      Decimal   @default(0)
+  esGravado      Boolean   @default(true)
+  ventaNoSuj     Decimal   @default(0)
+  ventaExenta    Decimal   @default(0)
+  ventaGravada   Decimal   @default(0)
+  ivaItem        Decimal   @default(0)
 }
 
 model Invalidacion {
@@ -379,11 +461,18 @@ model PagoCxC {
 
 model ConfigPlanilla {
   id          Int      @id @default(autoincrement())
-  clave       String   @unique
+  clave       String
   valor       Decimal
   descripcion String?
   topeMaximo  Decimal?
   updatedAt   DateTime @updatedAt
+
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("ConfigPlanillaEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, clave])
+  @@index([empresaId])
 }
 
 model Planilla {
@@ -405,7 +494,12 @@ model Planilla {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  @@unique([periodo, tipoPago])
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("PlanillaEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, periodo, tipoPago])
+  @@index([empresaId])
 }
 
 model DetallePlanilla {
@@ -433,7 +527,14 @@ model DetallePlanilla {
 
 model AppConfig {
   id        Int      @id @default(autoincrement())
-  clave     String   @unique
+  clave     String
   valor     String?
   updatedAt DateTime @updatedAt
+
+  // Multi-tenancy
+  empresaId Int?
+  empresa   Emisor? @relation("AppConfigEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, clave])
+  @@index([empresaId])
 }

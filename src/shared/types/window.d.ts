@@ -339,6 +339,7 @@ interface UserSession {
   role?: { id: number; nombre: string; permisos: string }
   tema?: string
   colorCustom?: string | null
+  empresaId?: number | null   // null = desktop (DB privada), number = empresa en modo web
 }
 
 interface CxCItem {

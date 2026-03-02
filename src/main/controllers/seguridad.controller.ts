@@ -1,5 +1,6 @@
 import { prisma } from '../database/prisma.client'
 import * as bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 
 export const seguridadController = {
   // ── USUARIOS ──────────────────────────────────────────
@@ -116,7 +117,7 @@ export const seguridadController = {
 
   // ── AUTENTICACIÓN ──────────────────────────────────────
   async login(username: string, password: string) {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: { username },
       include: { role: { select: { id: true, nombre: true, permisos: true } } }
     })
@@ -131,8 +132,22 @@ export const seguridadController = {
       data: { ultimoAcceso: new Date() }
     })
 
+    const u = user as unknown as Record<string, unknown>
+    const empresaId = (u.empresaId as number | null) ?? null
+
+    // Generar JWT con la identidad + empresa del usuario
+    const jwtSecret = process.env.JWT_SECRET
+    const token = jwtSecret
+      ? jwt.sign(
+          { userId: user.id, username: user.username, empresaId: empresaId ?? 0, roleId: user.roleId },
+          jwtSecret,
+          { expiresIn: '8h' }
+        )
+      : undefined
+
     return {
       ok: true,
+      token,          // undefined en desktop (sin JWT_SECRET), string en web
       user: {
         id: user.id,
         username: user.username,
@@ -140,49 +155,72 @@ export const seguridadController = {
         correo: user.correo,
         roleId: user.roleId,
         role: user.role,
-        tema: (user as unknown as Record<string, unknown>).tema as string ?? 'ocean-blue',
-        colorCustom: (user as unknown as Record<string, unknown>).colorCustom as string ?? null
+        empresaId,
+        tema: (u.tema as string) ?? 'ocean-blue',
+        colorCustom: (u.colorCustom as string) ?? null
       }
     }
   },
 
   // ── PROVISIONAR USUARIO INICIAL (desde activación de licencia) ────
-  async provisionUser(username: string, password: string) {
-    // Asegurar que el rol Administrador exista
-    let role = await prisma.role.findFirst({ where: { nombre: 'Administrador' } })
+  // empresaId: undefined = desktop (DB privada), number = empresa en modo web
+  async provisionUser(username: string, password: string, empresaId?: number) {
+    const ALL_PERMS = [
+      'clientes:ver', 'clientes:crear', 'clientes:editar', 'clientes:eliminar',
+      'proveedores:ver', 'proveedores:crear', 'proveedores:editar', 'proveedores:eliminar',
+      'empleados:ver', 'empleados:crear', 'empleados:editar', 'empleados:eliminar',
+      'inventario:ver', 'inventario:ajustar', 'productos:crear', 'productos:editar', 'productos:eliminar',
+      'compras:ver', 'compras:crear', 'compras:anular',
+      'facturacion:ver', 'facturacion:emitir', 'facturacion:anular', 'facturacion:configurar',
+      'reportes:ver', 'reportes:exportar',
+      'seguridad:ver', 'seguridad:usuarios', 'seguridad:roles'
+    ]
+
+    // Buscar/crear rol Administrador para esta empresa
+    // (en desktop empresaId = undefined → busca globalmente)
+    let role = await prisma.role.findFirst({
+      where: { nombre: 'Administrador', empresaId: empresaId ?? null }
+    })
     if (!role) {
       role = await prisma.role.create({
         data: {
           nombre: 'Administrador',
           descripcion: 'Acceso completo al sistema',
-          permisos: JSON.stringify([
-            'clientes:ver', 'clientes:crear', 'clientes:editar', 'clientes:eliminar',
-            'proveedores:ver', 'proveedores:crear', 'proveedores:editar', 'proveedores:eliminar',
-            'empleados:ver', 'empleados:crear', 'empleados:editar', 'empleados:eliminar',
-            'inventario:ver', 'inventario:ajustar', 'productos:crear', 'productos:editar', 'productos:eliminar',
-            'compras:ver', 'compras:crear', 'compras:anular',
-            'facturacion:ver', 'facturacion:emitir', 'facturacion:anular', 'facturacion:configurar',
-            'reportes:ver', 'reportes:exportar',
-            'seguridad:ver', 'seguridad:usuarios', 'seguridad:roles'
-          ])
+          permisos: JSON.stringify(ALL_PERMS),
+          ...(empresaId ? { empresaId } : {})
         }
       })
     }
+
     const passwordHash = await bcrypt.hash(password, 10)
-    // Crear o actualizar el usuario con las credenciales provistas
-    await prisma.user.upsert({
-      where: { username },
-      update: { passwordHash, activo: true },
-      create: {
-        nombre: 'Administrador',
-        username,
-        passwordHash,
-        correo: `${username}@speeddansys.com`,
-        roleId: role.id,
-        activo: true
-      }
+
+    // Crear o actualizar usuario. El upsert con el unique compuesto
+    // (empresaId, username) requiere que empresaId esté en el where.
+    // En desktop usamos findFirst + update/create porque empresaId es null.
+    const existing = await prisma.user.findFirst({
+      where: { username, empresaId: empresaId ?? null }
     })
-    return { ok: true }
+
+    let userId: number
+    if (existing) {
+      await prisma.user.update({ where: { id: existing.id }, data: { passwordHash, activo: true } })
+      userId = existing.id
+    } else {
+      const created = await prisma.user.create({
+        data: {
+          nombre: 'Administrador',
+          username,
+          passwordHash,
+          correo: `${username}@speeddansys.com`,
+          roleId: role.id,
+          activo: true,
+          ...(empresaId ? { empresaId } : {})
+        }
+      })
+      userId = created.id
+    }
+
+    return { ok: true, userId, roleId: role.id }
   },
 
   // ── PREFERENCIAS DE TEMA ───────────────────────────────
