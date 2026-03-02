@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "buildCommand": "npx prisma generate && npx vite build --config vite.config.web.ts",
+  "outputDirectory": "dist/renderer",
+  "functions": {
+    "api/index.ts": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

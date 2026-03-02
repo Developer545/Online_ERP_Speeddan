@@ -1,0 +1,439 @@
+// Speeddansys ERP — Schema de Base de Datos
+// Motor: PostgreSQL
+// ORM: Prisma
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════
+// SEGURIDAD
+// ═══════════════════════════════════════
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique
+  descripcion String?
+  permisos    String   @default("[]") // JSON array de permisos
+  activo      Boolean  @default(true)
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  nombre       String
+  username     String    @unique
+  passwordHash String
+  correo       String?
+  roleId       Int
+  role         Role      @relation(fields: [roleId], references: [id])
+  activo       Boolean   @default(true)
+  ultimoAcceso DateTime?
+  tema         String    @default("ocean-blue")
+  colorCustom  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// ═══════════════════════════════════════
+// CONFIGURACIÓN EMPRESA / EMISOR DTE
+// ═══════════════════════════════════════
+
+model Emisor {
+  id                   Int        @id @default(autoincrement())
+  nombre               String
+  nombreComercial      String?
+  nit                  String     @unique
+  nrc                  String     @unique
+  codActividad         String
+  descActividad        String
+  tipoEstablecimiento  String
+  departamentoCod      String
+  municipioCod         String
+  complementoDireccion String
+  telefono             String?
+  correo               String
+  mhApiUser            String?
+  mhApiPassword        String?
+  mhAmbiente           String     @default("00")
+  certPath             String?
+  certPassword         String?
+  modoSimulacion       Boolean    @default(false)
+  sucursales           Sucursal[]
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+}
+
+model Sucursal {
+  id              Int           @id @default(autoincrement())
+  emisorId        Int
+  emisor          Emisor        @relation(fields: [emisorId], references: [id])
+  nombre          String
+  codMH           String
+  puntoVenta      String
+  tipoEstab       String
+  departamentoCod String
+  municipioCod    String
+  complemento     String
+  telefono        String?
+  activa          Boolean       @default(true)
+  correlativos    Correlativo[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Correlativo {
+  id         Int      @id @default(autoincrement())
+  sucursalId Int
+  sucursal   Sucursal @relation(fields: [sucursalId], references: [id])
+  tipoDte    String
+  anioFiscal Int
+  siguiente  Int      @default(1)
+
+  @@unique([sucursalId, tipoDte, anioFiscal])
+}
+
+// ═══════════════════════════════════════
+// CLIENTES
+// ═══════════════════════════════════════
+
+model Cliente {
+  id              Int       @id @default(autoincrement())
+  tipoDocumento   String
+  numDocumento    String
+  nombre          String
+  nombreComercial String?
+  nrc             String?
+  correo          String?
+  telefono        String?
+  departamentoCod String?
+  municipioCod    String?
+  complemento     String?
+  activo          Boolean   @default(true)
+  facturas        Factura[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([tipoDocumento, numDocumento])
+}
+
+// ═══════════════════════════════════════
+// PROVEEDORES
+// ═══════════════════════════════════════
+
+model Proveedor {
+  id              Int      @id @default(autoincrement())
+  nombre          String
+  nit             String?  @unique
+  nrc             String?
+  correo          String?
+  telefono        String?
+  tipoProveedor   String?  @default("NACIONAL")
+  contacto        String?
+  plazoCredito    Int?     @default(0)
+  direccion       String?
+  departamentoCod String?
+  municipioCod    String?
+  activo          Boolean  @default(true)
+  compras         Compra[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════
+// EMPLEADOS
+// ═══════════════════════════════════════
+
+model Empleado {
+  id              Int       @id @default(autoincrement())
+  nombre          String
+  dui             String?   @unique
+  nit             String?
+  correo          String?
+  telefono        String?
+  cargo           String?
+  salario         Decimal   @default(0)
+  fechaIngreso    DateTime?
+  departamentoCod String?
+  municipioCod    String?
+  direccion       String?
+  activo          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ═══════════════════════════════════════
+// PRODUCTOS E INVENTARIO
+// ═══════════════════════════════════════
+
+model Categoria {
+  id        Int        @id @default(autoincrement())
+  nombre    String     @unique
+  activa    Boolean    @default(true)
+  productos Producto[]
+}
+
+model Producto {
+  id              Int              @id @default(autoincrement())
+  codigo          String           @unique
+  nombre          String
+  descripcion     String?
+  categoriaId     Int?
+  categoria       Categoria?       @relation(fields: [categoriaId], references: [id])
+  uniMedida       Int
+  precioVenta     Decimal
+  costoPromedio   Decimal          @default(0)
+  stockMinimo     Decimal          @default(0)
+  stockActual     Decimal          @default(0)
+  tipoItem        Int              @default(1)
+  codTributo      String?
+  esGravado       Boolean          @default(true)
+  activo          Boolean          @default(true)
+  movimientos     Kardex[]
+  detallesFactura DetalleFactura[]
+  detallesCompra  DetalleCompra[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Kardex {
+  id             Int      @id @default(autoincrement())
+  productoId     Int
+  producto       Producto @relation(fields: [productoId], references: [id])
+  tipoMovimiento String
+  referencia     String
+  cantidad       Decimal
+  costoUnitario  Decimal
+  costoTotal     Decimal
+  stockAnterior  Decimal
+  stockNuevo     Decimal
+  notas          String?
+  fecha          DateTime @default(now())
+  createdAt      DateTime @default(now())
+}
+
+// ═══════════════════════════════════════
+// COMPRAS
+// ═══════════════════════════════════════
+
+model Compra {
+  id              Int             @id @default(autoincrement())
+  proveedorId     Int?
+  proveedor       Proveedor?      @relation(fields: [proveedorId], references: [id])
+  numeroDocumento String
+  tipoDocumento   String
+  tipoCompra      String          @default("PRODUCTO") // PRODUCTO | GASTO_SERVICIO
+  fecha           DateTime
+  condicionPago   String          @default("CONTADO")
+  subtotal        Decimal
+  iva             Decimal
+  total           Decimal
+  estado          String          @default("REGISTRADA")
+  notas           String?
+  detalles        DetalleCompra[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model DetalleCompra {
+  id            Int       @id @default(autoincrement())
+  compraId      Int
+  compra        Compra    @relation(fields: [compraId], references: [id])
+  productoId    Int?
+  producto      Producto? @relation(fields: [productoId], references: [id])
+  descripcion   String?
+  cantidad      Decimal
+  costoUnitario Decimal
+  descuento     Decimal   @default(0)
+  subtotal      Decimal
+}
+
+// ═══════════════════════════════════════
+// GASTOS INTERNOS
+// ═══════════════════════════════════════
+
+model CategoriaGasto {
+  id          Int            @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  color       String?        @default("#1890ff")
+  activo      Boolean        @default(true)
+  gastos      GastoInterno[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model GastoInterno {
+  id          Int            @id @default(autoincrement())
+  categoriaId Int
+  categoria   CategoriaGasto @relation(fields: [categoriaId], references: [id])
+  fecha       DateTime
+  monto       Decimal
+  descripcion String
+  notas       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+// ═══════════════════════════════════════
+// FACTURACIÓN ELECTRÓNICA (DTE)
+// ═══════════════════════════════════════
+
+model Factura {
+  id                     Int              @id @default(autoincrement())
+  tipoDte                String
+  codigoGeneracion       String           @unique
+  numeroControl          String           @unique
+  ambiente               String
+  fechaEmision           DateTime
+  clienteId              Int?
+  cliente                Cliente?         @relation(fields: [clienteId], references: [id])
+  nombreReceptor         String?
+  totalNoSuj             Decimal          @default(0)
+  totalExenta            Decimal          @default(0)
+  totalGravada           Decimal          @default(0)
+  subTotal               Decimal
+  totalIva               Decimal
+  totalDescuento         Decimal          @default(0)
+  totalPagar             Decimal
+  estado                 String           @default("BORRADOR")
+  selloRecepcion         String?
+  mhEstado               String?
+  mhRespuestaJson        String?
+  mhFechaRecepcion       DateTime?
+  dteJson                String
+  dteJsonFirmado         String?
+  facturaRelacionadaId   Int?
+  facturaRelacionada     Factura?         @relation("DTERelacionado", fields: [facturaRelacionadaId], references: [id])
+  documentosRelacionados Factura[]        @relation("DTERelacionado")
+  detalles               DetalleFactura[]
+  pagos                  PagoCxC[]
+  condicionPago          String           @default("1")
+  plazoCredito           Int?
+  notas                  String?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+}
+
+model DetalleFactura {
+  id            Int       @id @default(autoincrement())
+  facturaId     Int
+  factura       Factura   @relation(fields: [facturaId], references: [id])
+  productoId    Int?
+  producto      Producto? @relation(fields: [productoId], references: [id])
+  numItem       Int
+  tipoItem      Int
+  codigo        String?
+  descripcion   String
+  cantidad      Decimal
+  uniMedida     Int
+  precioUnitario Decimal
+  descuento     Decimal   @default(0)
+  esGravado     Boolean   @default(true)
+  ventaNoSuj    Decimal   @default(0)
+  ventaExenta   Decimal   @default(0)
+  ventaGravada  Decimal   @default(0)
+  ivaItem       Decimal   @default(0)
+}
+
+model Invalidacion {
+  id                Int      @id @default(autoincrement())
+  facturaId         Int      @unique
+  codigoGeneracion  String   @unique
+  tipoInvalidacion  String
+  motivoDescripcion String
+  nombreResponsable String
+  docResponsable    String
+  nombreSolicita    String
+  docSolicita       String
+  estado            String   @default("PENDIENTE")
+  selloRecepcion    String?
+  invalidacionJson  String
+  createdAt         DateTime @default(now())
+}
+
+model PagoCxC {
+  id          Int      @id @default(autoincrement())
+  facturaId   Int
+  factura     Factura  @relation(fields: [facturaId], references: [id])
+  monto       Decimal
+  fecha       DateTime @default(now())
+  metodoPago  String   // 01=Efectivo, 02=Cheque, 03=Transferencia, 04=Tarjeta
+  referencia  String?
+  notas       String?
+  creadoPor   String?
+  createdAt   DateTime @default(now())
+}
+
+// ═══════════════════════════════════════
+// PLANILLA / NÓMINA
+// ═══════════════════════════════════════
+
+model ConfigPlanilla {
+  id          Int      @id @default(autoincrement())
+  clave       String   @unique
+  valor       Decimal
+  descripcion String?
+  topeMaximo  Decimal?
+  updatedAt   DateTime @updatedAt
+}
+
+model Planilla {
+  id               Int               @id @default(autoincrement())
+  periodo          String
+  tipoPago         String            @default("MENSUAL")
+  estado           String            @default("BORRADOR")
+  totalBruto       Decimal           @default(0)
+  totalISS         Decimal           @default(0)
+  totalAFP         Decimal           @default(0)
+  totalRenta       Decimal           @default(0)
+  totalDeducciones Decimal           @default(0)
+  totalNeto        Decimal           @default(0)
+  totalPatronalISS Decimal           @default(0)
+  totalPatronalAFP Decimal           @default(0)
+  totalINSAFORP    Decimal           @default(0)
+  notas            String?
+  detalles         DetallePlanilla[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([periodo, tipoPago])
+}
+
+model DetallePlanilla {
+  id               Int      @id @default(autoincrement())
+  planillaId       Int
+  planilla         Planilla @relation(fields: [planillaId], references: [id], onDelete: Cascade)
+  empleadoId       Int
+  nombre           String
+  cargo            String?
+  salarioBruto     Decimal
+  isss             Decimal  @default(0)
+  afp              Decimal  @default(0)
+  renta            Decimal  @default(0)
+  otrasDeducciones Decimal  @default(0)
+  totalDeducciones Decimal  @default(0)
+  salarioNeto      Decimal  @default(0)
+  isssPatronal     Decimal  @default(0)
+  afpPatronal      Decimal  @default(0)
+  insaforp         Decimal  @default(0)
+}
+
+// ═══════════════════════════════════════
+// LICENCIA DE HARDWARE
+// ═══════════════════════════════════════
+
+model AppConfig {
+  id        Int      @id @default(autoincrement())
+  clave     String   @unique
+  valor     String?
+  updatedAt DateTime @updatedAt
+}

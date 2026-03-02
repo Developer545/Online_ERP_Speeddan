@@ -1,0 +1,146 @@
+{
+  "name": "speeddansys",
+  "version": "1.0.0",
+  "description": "Sistema ERP con Facturación Electrónica DTE - El Salvador",
+  "main": "./out/main/index.js",
+  "author": {
+    "name": "Speeddansys",
+    "email": "soporte@speeddansys.com"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "start": "electron-vite dev",
+    "package": "electron-vite build && electron-builder",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:seed:clientes": "tsx prisma/seed-clientes.ts",
+    "db:seed:proveedores": "tsx prisma/seed-proveedores.ts",
+    "db:seed:empleados": "tsx prisma/seed-empleados.ts",
+    "db:seed:productos": "tsx prisma/seed-productos.ts",
+    "db:clean:inventario": "tsx prisma/clean-inventario.ts",
+    "db:seed:tecnologia": "tsx prisma/seed-tecnologia.ts",
+    "lint": "eslint . --ext .ts,.tsx",
+    "dev:server": "ts-node-dev --respawn --transpile-only src/server/index.ts"
+  },
+  "dependencies": {
+    "@electron-toolkit/preload": "^3.0.1",
+    "@electron-toolkit/utils": "^3.0.0",
+    "@prisma/client": "^5.22.0",
+    "animejs": "^3.2.2",
+    "antd": "^5.29.3",
+    "axios": "^1.13.5",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.6",
+    "dayjs": "^1.11.19",
+    "dotenv": "^17.3.1",
+    "electron-store": "^10.1.0",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "node-forge": "^1.3.3",
+    "node-machine-id": "^1.1.12",
+    "pdfmake": "^0.2.23",
+    "pg": "^8.19.0",
+    "qrcode": "^1.5.4",
+    "qrcode.react": "^4.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.3",
+    "recharts": "^3.7.0",
+    "uuid": "^10.0.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.76",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@electron-toolkit/eslint-config-prettier": "^2.0.0",
+    "@electron-toolkit/eslint-config-ts": "^2.0.0",
+    "@electron-toolkit/tsconfig": "^1.0.1",
+    "@types/animejs": "^3.1.13",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.11",
+    "@types/node-forge": "^1.3.14",
+    "@types/pdfmake": "^0.2.13",
+    "@types/pg": "^8.18.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "eslint": "^9.14.0",
+    "prettier": "^3.3.3",
+    "prisma": "^5.22.0",
+    "ts-node-dev": "^2.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21"
+  },
+  "build": {
+    "appId": "com.speeddansys.erp",
+    "productName": "Speeddansys ERP",
+    "electronDist": "node_modules/electron/dist",
+    "asar": false,
+    "files": [
+      "out/**",
+      "prisma/schema.prisma",
+      "prisma/migrations/**",
+      "prisma/migration_lock.toml",
+      "resources/**",
+      "package.json",
+      "!node_modules"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules",
+        "to": "app/node_modules",
+        "filter": [
+          "**/*",
+          "!electron/**",
+          "!electron-builder/**",
+          "!electron-vite/**",
+          "!vite/**",
+          "!typescript/**",
+          "!eslint/**",
+          "!prettier/**",
+          "!@vitejs/**",
+          "!tsx/**",
+          "!ts-node-dev/**",
+          "!@types/**",
+          "!@electron-toolkit/eslint*/**",
+          "!@electron-toolkit/tsconfig/**",
+          "!node-gyp/**",
+          "!.cache/**",
+          "!.bin/electron*",
+          "!.bin/tsc",
+          "!.bin/vite*",
+          "!.bin/eslint*",
+          "!.bin/prettier*"
+        ]
+      },
+      {
+        "from": "node_modules/.prisma",
+        "to": "app/node_modules/.prisma"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

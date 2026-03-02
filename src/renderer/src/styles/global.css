@@ -1,0 +1,734 @@
+/* ══════════════════════════════════════════════
+   ESTILOS GLOBALES — SPEEDDANSYS ERP
+   Colores administrados vía variables CSS del tema.
+   Las variables --theme-* son inyectadas por applyThemeCSSVars()
+   en themes.ts cada vez que el usuario cambia de tema.
+   ══════════════════════════════════════════════ */
+
+/* ── Variables por defecto (Ocean Blue) ── */
+:root {
+  --theme-primary: #1677ff;
+  --theme-primary-rgb: 22, 119, 255;
+  --theme-success: #52c41a;
+  --theme-warning: #faad14;
+  --theme-error: #ff4d4f;
+  --theme-info: #1677ff;
+
+  --theme-sider-bg: #001529;
+  --theme-header-bg: #ffffff;
+  --theme-content-bg: #f0f2f5;
+  --theme-body-bg: #f0f2f5;
+
+  --theme-menu-item-bg: #001529;
+  --theme-menu-sub-bg: #000c17;
+  --theme-menu-selected-bg: rgba(22, 119, 255, 0.15);
+  --theme-menu-hover-bg: rgba(22, 119, 255, 0.08);
+  --theme-menu-color: rgba(255, 255, 255, 0.65);
+  --theme-menu-selected-color: #ffffff;
+
+  --theme-border: #e8e8e8;
+  --theme-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+
+  --scrollbar-thumb: rgba(0, 0, 0, 0.18);
+  --scrollbar-track: rgba(0, 0, 0, 0.04);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: var(--theme-body-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar personalizada (usa variables de tema) ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--theme-primary-rgb), 0.4);
+}
+
+/* ── Card section ── */
+.page-card {
+  background: var(--theme-header-bg);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: var(--theme-shadow);
+  border: 1px solid var(--theme-border);
+}
+
+/* En modo oscuro las page-cards se ajustan */
+[data-theme-mode="dark"] .page-card {
+  background: var(--theme-header-bg);
+}
+
+/* ── Badge de estado DTE ── */
+.dte-estado-RECIBIDO {
+  color: var(--theme-success);
+}
+
+.dte-estado-RECHAZADO {
+  color: var(--theme-error);
+}
+
+.dte-estado-CONTINGENCIA {
+  color: var(--theme-warning);
+}
+
+.dte-estado-PENDIENTE_ENVIO {
+  color: var(--theme-info);
+}
+
+.dte-estado-ANULADO {
+  color: rgba(128, 128, 128, 0.8);
+}
+
+.dte-estado-BORRADOR {
+  color: rgba(89, 89, 89, 0.9);
+}
+
+/* ══════════════════════════════════════════════
+   LOGIN PAGE — ANIMACIONES Y ESTILOS
+   (La login no usa el sistema de temas porque
+   siempre es oscura)
+   ══════════════════════════════════════════════ */
+
+.login-bg {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.5s ease;
+}
+
+.login-bg.dark {
+  background: radial-gradient(ellipse at 15% 60%, #171717 0%, #0d0d0d 55%, #050505 100%);
+}
+
+.login-bg.light {
+  background: radial-gradient(ellipse at 15% 60%, #ffffff 0%, #f0f2f5 55%, #e8eaed 100%);
+}
+
+/* Orbs de luz */
+.login-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  animation: loginOrbFloat 12s ease-in-out infinite;
+}
+
+.login-orb-1 {
+  width: 600px;
+  height: 600px;
+  top: -180px;
+  right: -120px;
+  animation-duration: 11s;
+  animation-delay: 0s;
+}
+
+.login-bg.dark .login-orb-1 {
+  background: radial-gradient(circle, rgba(244, 121, 32, 0.25) 0%, transparent 65%);
+}
+
+.login-bg.light .login-orb-1 {
+  background: radial-gradient(circle, rgba(244, 121, 32, 0.12) 0%, transparent 65%);
+}
+
+.login-orb-2 {
+  width: 480px;
+  height: 480px;
+  bottom: -120px;
+  left: -80px;
+  animation-duration: 15s;
+  animation-delay: -4s;
+}
+
+.login-bg.dark .login-orb-2 {
+  background: radial-gradient(circle, rgba(255, 149, 77, 0.2) 0%, transparent 65%);
+}
+
+.login-bg.light .login-orb-2 {
+  background: radial-gradient(circle, rgba(255, 149, 77, 0.08) 0%, transparent 65%);
+}
+
+.login-orb-3 {
+  width: 320px;
+  height: 320px;
+  top: 45%;
+  left: 8%;
+  animation-duration: 13s;
+  animation-delay: -8s;
+}
+
+.login-bg.dark .login-orb-3 {
+  background: radial-gradient(circle, rgba(250, 173, 20, 0.15) 0%, transparent 65%);
+}
+
+.login-bg.light .login-orb-3 {
+  background: radial-gradient(circle, rgba(250, 173, 20, 0.06) 0%, transparent 65%);
+}
+
+@keyframes loginOrbFloat {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  30% {
+    transform: translate(30px, -40px) scale(1.06);
+  }
+
+  60% {
+    transform: translate(-25px, 25px) scale(0.94);
+  }
+}
+
+/* Cuadrícula de fondo */
+.login-grid {
+  position: absolute;
+  inset: 0;
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+.login-bg.dark .login-grid {
+  background-image:
+    linear-gradient(rgba(244, 121, 32, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 121, 32, 0.04) 1px, transparent 1px);
+}
+
+.login-bg.light .login-grid {
+  background-image:
+    linear-gradient(rgba(244, 121, 32, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 121, 32, 0.06) 1px, transparent 1px);
+}
+
+/* Card glassmorphism */
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 430px;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-radius: 18px;
+  padding: 44px 40px 36px;
+  transition: all 0.3s ease;
+}
+
+.login-card.light {
+  background: #ffffff;
+  border: 1px solid #ebebeb;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.08);
+}
+
+.login-card.dark {
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.8);
+}
+
+/* Barra degradada superior */
+.login-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #f47920 35%, #ffad70 65%, transparent 100%);
+  border-radius: 18px 18px 0 0;
+}
+
+/* Sección del logo */
+.login-logo-section {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.login-logo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f47920 0%, #ffad70 100%);
+  box-shadow: 0 8px 36px rgba(244, 121, 32, 0.4), 0 0 0 1px rgba(244, 121, 32, 0.2);
+  margin-bottom: 4px;
+}
+
+/* Separador */
+.login-divider {
+  height: 1px;
+  margin: 0 0 24px;
+}
+
+.login-card.light .login-divider {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.08), transparent);
+}
+
+.login-card.dark .login-divider {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+/* Inputs */
+.login-input.ant-input-affix-wrapper,
+.login-input.ant-input {
+  border-radius: 10px !important;
+  transition: all 0.2s;
+}
+
+/* Light mode inputs */
+.login-card.light .login-input.ant-input-affix-wrapper,
+.login-card.light .login-input.ant-input {
+  background: #f0f0f0 !important;
+  border: 1px solid #e0e0e0 !important;
+  color: #333 !important;
+}
+
+.login-card.light .login-input .ant-input {
+  color: #333 !important;
+  background: transparent !important;
+}
+
+.login-card.light .login-input input::placeholder,
+.login-card.light .login-input .ant-input::placeholder {
+  color: rgba(0, 0, 0, 0.4) !important;
+}
+
+.login-card.light .login-input .ant-input-password-icon,
+.login-card.light .login-prefix-icon,
+.login-card.light .login-input .anticon {
+  color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Dark mode inputs */
+.login-card.dark .login-input.ant-input-affix-wrapper,
+.login-card.dark .login-input.ant-input {
+  background: #222222 !important;
+  border: 1px solid #333333 !important;
+  color: #fff !important;
+}
+
+.login-card.dark .login-input .ant-input {
+  color: #fff !important;
+  background: transparent !important;
+}
+
+.login-card.dark .login-input input::placeholder,
+.login-card.dark .login-input .ant-input::placeholder {
+  color: rgba(255, 255, 255, 0.28) !important;
+}
+
+.login-card.dark .login-input .ant-input-password-icon,
+.login-card.dark .login-prefix-icon,
+.login-card.dark .login-input .anticon {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.login-input.ant-input-affix-wrapper:hover,
+.login-input.ant-input:hover {
+  border-color: rgba(244, 121, 32, 0.5) !important;
+}
+
+.login-input.ant-input-affix-wrapper-focused,
+.login-input.ant-input-affix-wrapper:focus-within {
+  border-color: #f47920 !important;
+  box-shadow: 0 0 0 3px rgba(244, 121, 32, 0.14) !important;
+}
+
+.login-card .ant-form-item-explain-error {
+  color: #ff7875 !important;
+}
+
+/* Botón de login */
+.login-btn.ant-btn {
+  height: 50px !important;
+  border-radius: 10px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  background: linear-gradient(90deg, #f47920 0%, #ff8c3a 100%) !important;
+  border: none !important;
+  box-shadow: 0 6px 20px rgba(244, 121, 32, 0.35) !important;
+  color: #fff !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.login-btn.ant-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 25px rgba(244, 121, 32, 0.5) !important;
+}
+
+.login-btn.ant-btn:active {
+  transform: translateY(0px) !important;
+}
+
+/* Footer */
+.login-footer-text {
+  text-align: center;
+  margin-top: 28px;
+  font-size: 11px;
+}
+
+.login-card.light .login-footer-text {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.login-card.dark .login-footer-text {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* ══════════════════════════════════════════════
+   HEADER — BUSCADOR Y BADGE DE ENTORNO
+   ══════════════════════════════════════════════ */
+
+.header-env-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.header-env-badge.env-test {
+  color: var(--theme-warning);
+}
+
+.header-env-badge.env-test .header-env-dot {
+  background: var(--theme-warning);
+  animation: envDotPulseOrange 2s ease-in-out infinite;
+}
+
+.header-env-badge.env-prod {
+  color: var(--theme-success);
+}
+
+.header-env-badge.env-prod .header-env-dot {
+  background: var(--theme-success);
+  animation: envDotPulseGreen 2s ease-in-out infinite;
+}
+
+.header-env-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes envDotPulseOrange {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(250, 173, 20, 0.5);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2);
+    box-shadow: 0 0 0 3px rgba(250, 173, 20, 0);
+  }
+}
+
+@keyframes envDotPulseGreen {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.5);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2);
+    box-shadow: 0 0 0 3px rgba(82, 196, 26, 0);
+  }
+}
+
+/* Buscador del header */
+.header-search-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--theme-content-bg);
+  border: 1px solid var(--theme-border);
+  border-radius: 8px;
+  padding: 0 14px;
+  height: 36px;
+  cursor: pointer;
+  width: 100%;
+  max-width: 480px;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.header-search-trigger:hover {
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 0 2px rgba(var(--theme-primary-rgb), 0.1);
+}
+
+/* Variante oscura */
+.header-search-trigger.dark {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.header-search-trigger.dark:hover {
+  border-color: var(--theme-primary);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(var(--theme-primary-rgb), 0.15);
+}
+
+.header-search-trigger.dark .header-search-icon,
+.header-search-trigger.dark .header-search-placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.header-search-trigger.dark .header-search-kbd {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.header-search-icon {
+  color: rgba(0, 0, 0, 0.3);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.header-search-placeholder {
+  color: rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+  flex: 1;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-search-kbd {
+  background: var(--theme-header-bg);
+  border: 1px solid var(--theme-border);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 10px;
+  color: rgba(0, 0, 0, 0.3);
+  font-family: monospace;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+
+/* ══════════════════════════════════════════════
+   LOGIN — SELECTOR DE ENTORNO
+   ══════════════════════════════════════════════ */
+
+.login-env-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.login-env-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.login-card.light .login-env-label {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.login-card.dark .login-env-label {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.login-env-toggle {
+  display: flex;
+  gap: 6px;
+  border-radius: 24px;
+  padding: 4px;
+}
+
+.login-card.light .login-env-toggle {
+  background: transparent;
+  border: none;
+}
+
+.login-card.dark .login-env-toggle {
+  background: transparent;
+  border: none;
+}
+
+.login-env-opt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.login-card.light .login-env-opt {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.login-card.dark .login-env-opt {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.login-card.light .login-env-opt:hover:not(:disabled) {
+  color: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.login-card.dark .login-env-opt:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.login-env-opt:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.login-env-opt .login-env-opt-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.login-card.light .login-env-opt.active-test {
+  background: transparent;
+  color: #f47920;
+  font-weight: 600;
+}
+
+.login-card.dark .login-env-opt.active-test {
+  background: transparent;
+  color: #f47920;
+  font-weight: 600;
+}
+
+.login-env-opt.active-test .login-env-opt-dot {
+  background: #f47920;
+  opacity: 1;
+  box-shadow: 0 0 6px rgba(244, 121, 32, 0.5);
+  animation: envDotPulse 2s ease-in-out infinite;
+}
+
+.login-card.light .login-env-opt.active-prod {
+  background: transparent;
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+.login-card.dark .login-env-opt.active-prod {
+  background: transparent;
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+.login-env-opt.active-prod .login-env-opt-dot {
+  background: #ff7875;
+  opacity: 1;
+  box-shadow: 0 0 6px rgba(255, 120, 117, 0.8);
+  animation: envDotPulse 2s ease-in-out infinite;
+}
+
+.login-env-warning {
+  color: rgba(255, 120, 80, 0.85);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* Botón de login en modo producción */
+.login-btn-prod.ant-btn {
+  background: linear-gradient(90deg, #cf1322 0%, #ff4d4f 100%) !important;
+  box-shadow: 0 6px 28px rgba(207, 19, 34, 0.45) !important;
+}
+
+.login-btn-prod.ant-btn:hover {
+  box-shadow: 0 10px 40px rgba(207, 19, 34, 0.65) !important;
+}
+
+/* ══════════════════════════════════════════════
+   Colores de filas de tabla de inventario
+   Usan variables del tema cuando es posible */
+.ant-table-row-danger td {
+  background-color: rgba(var(--theme-primary-rgb, 255, 77, 79), 0.05) !important;
+}
+
+.ant-table-row-danger:hover td {
+  background-color: rgba(var(--theme-primary-rgb, 255, 77, 79), 0.09) !important;
+}
+
+[data-theme-mode="light"] .ant-table-row-danger td {
+  background-color: #fff2f0 !important;
+}
+
+[data-theme-mode="light"] .ant-table-row-danger:hover td {
+  background-color: #ffebe8 !important;
+}
+
+.ant-table-row-warning td {
+  background-color: rgba(250, 173, 20, 0.06) !important;
+}
+
+.ant-table-row-warning:hover td {
+  background-color: rgba(250, 173, 20, 0.11) !important;
+}
+
+[data-theme-mode="light"] .ant-table-row-warning td {
+  background-color: #fffbe6 !important;
+}
+
+[data-theme-mode="light"] .ant-table-row-warning:hover td {
+  background-color: #fff7cc !important;
+}

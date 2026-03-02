@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "outDir": "../dist/api",
+    "rootDir": "..",
+    "baseUrl": "..",
+    "paths": {
+      "@main/*": ["./src/main/*"],
+      "@shared/*": ["./src/shared/*"]
+    }
+  },
+  "include": [
+    "../src/server/**/*",
+    "../src/main/controllers/**/*",
+    "../src/main/services/**/*",
+    "../src/main/database/**/*",
+    "../src/shared/**/*",
+    "./**/*"
+  ]
+}
