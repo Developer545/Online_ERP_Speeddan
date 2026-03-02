@@ -9,7 +9,7 @@
 
 import { v4 as uuidv4 } from 'uuid'
 import dayjs from 'dayjs'
-import { VERSION_DTE } from '@shared/constants/catalogs'
+import { VERSION_DTE } from '../../../shared/constants/catalogs'
 import type {
   DTEDocument,
   DTEIdentificacion,
@@ -19,7 +19,7 @@ import type {
   DTEResumen,
   TipoDTE,
   AmbienteDTE
-} from '@shared/types/dte.types'
+} from '../../../shared/types/dte.types'
 
 export interface BuildDTEInput {
   tipoDte: TipoDTE

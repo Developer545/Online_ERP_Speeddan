@@ -11,7 +11,7 @@
 // ══════════════════════════════════════════════════════════
 
 import axios from 'axios'
-import type { AmbienteDTE, MHAuthResponse, MHTransmitResponse, TipoDTE } from '@shared/types/dte.types'
+import type { AmbienteDTE, MHAuthResponse, MHTransmitResponse, TipoDTE } from '../../../shared/types/dte.types'
 
 const MH_URLS: Record<AmbienteDTE, string> = {
   '00': 'https://apitest.dtes.mh.gob.sv',

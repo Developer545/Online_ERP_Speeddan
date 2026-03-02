@@ -15,7 +15,7 @@ import { CorrelatvivoService } from './correlativo.service'
 import { DTEBuilderService, type BuildDTEInput } from './builder.service'
 import { DTESignerService } from './signer.service'
 import { MHTransmitterService } from './transmitter.service'
-import type { TipoDTE, AmbienteDTE, DTEDocument } from '@shared/types/dte.types'
+import type { TipoDTE, AmbienteDTE, DTEDocument } from '../../../shared/types/dte.types'
 import fs from 'fs'
 import path from 'path'
 

@@ -20,16 +20,20 @@
 import forge from 'node-forge'
 import fs from 'fs'
 import path from 'path'
-import { app } from 'electron'
-import type { DTEDocument } from '@shared/types/dte.types'
+import type { DTEDocument } from '../../../shared/types/dte.types'
+
+// Electron solo disponible en desktop, en web usamos fallback
+let electronApp: any = null
+try { electronApp = require('electron').app } catch {}
 
 // Carpeta donde se almacenan los certificados .crt
 // En producción: %APPDATA%/Speeddansys/certificates/
 // En desarrollo: /resources/certificates/
 export function getCertificatesFolder(): string {
-  return app.isPackaged
-    ? path.join(app.getPath('userData'), 'certificates')
-    : path.join(process.cwd(), 'resources', 'certificates')
+  if (electronApp?.isPackaged) {
+    return path.join(electronApp.getPath('userData'), 'certificates')
+  }
+  return path.join(process.cwd(), 'resources', 'certificates')
 }
 
 export interface SignResult {
