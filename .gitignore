@@ -9,3 +9,5 @@ resources/certificates/
 *.exe
 .vercel
 .claude/
+
+.vercel

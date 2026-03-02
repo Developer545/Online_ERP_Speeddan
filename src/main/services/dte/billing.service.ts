@@ -10,7 +10,7 @@
 //  6. Generar PDF
 // ══════════════════════════════════════════════════════════
 
-import { getPrismaClient } from '@main/database/prisma.client'
+import { getPrismaClient } from '../../database/prisma.client'
 import { CorrelatvivoService } from './correlativo.service'
 import { DTEBuilderService, type BuildDTEInput } from './builder.service'
 import { DTESignerService } from './signer.service'

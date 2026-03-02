@@ -2,8 +2,8 @@
 // CONTROLADOR DE PLANILLA / NÓMINA
 // ══════════════════════════════════════════════════════════
 
-import { prisma } from '@main/database/prisma.client'
-import { NominaService } from '@main/services/nomina.service'
+import { prisma } from '../database/prisma.client'
+import { NominaService } from '../services/nomina.service'
 import fs from 'fs'
 import path from 'path'
 

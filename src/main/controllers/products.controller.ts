@@ -1,4 +1,4 @@
-import { getPrismaClient } from '@main/database/prisma.client'
+import { getPrismaClient } from '../database/prisma.client'
 
 const db = getPrismaClient()
 

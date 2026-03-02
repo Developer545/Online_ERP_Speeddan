@@ -1,14 +1,12 @@
-import * as express from 'express';
-import * as cors from 'cors';
-import * as dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
-import * as path from 'path';
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { prisma } from '../main/database/prisma.client';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
-const prisma = new PrismaClient();
 
 // Middlewares
 app.use(cors({ origin: true, credentials: true }));
@@ -52,11 +50,13 @@ app.use('/api/gastos', gastosRoutes);
 app.use('/api/empleados', empleadosRoutes);
 app.use('/api/compras', comprasRoutes);
 
-// ── Servir React (modo producción web en Render/Vercel) ────
-if (process.env.NODE_ENV === 'production') {
+// ── Servir React (solo en modo NO-Vercel, ej. Render/VPS) ──
+// En Vercel, el SPA se sirve desde vercel.json rewrites.
+if (!process.env.VERCEL && process.env.NODE_ENV === 'production') {
+    const path = require('path');
     const staticPath = path.join(__dirname, '../../dist/renderer');
     app.use(express.static(staticPath));
-    app.get('*', (req, res) => {
+    app.get('*', (req: any, res: any) => {
         if (!req.path.startsWith('/api')) {
             res.sendFile(path.join(staticPath, 'index.html'));
         }
@@ -73,3 +73,4 @@ if (!process.env.VERCEL) {
 
 export { app, prisma };
 export default app;
+

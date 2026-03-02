@@ -11,7 +11,7 @@
 //  • El emisor es responsable de la secuencialidad
 // ══════════════════════════════════════════════════════════
 
-import { getPrismaClient } from '@main/database/prisma.client'
+import { getPrismaClient } from '../../database/prisma.client'
 import type { TipoDTE } from '@shared/types/dte.types'
 
 export interface NumeroControlDTE {

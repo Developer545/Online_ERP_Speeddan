@@ -5,10 +5,10 @@
 // Valida los datos de entrada antes de pasarlos al servicio.
 // ══════════════════════════════════════════════════════════
 
-import { getPrismaClient } from '@main/database/prisma.client'
-import { BillingService, type EmitirFacturaInput } from '@main/services/dte/billing.service'
-import { MHTransmitterService } from '@main/services/dte/transmitter.service'
-import { DTESignerService } from '@main/services/dte/signer.service'
+import { getPrismaClient } from '../database/prisma.client'
+import { BillingService, type EmitirFacturaInput } from '../services/dte/billing.service'
+import { MHTransmitterService } from '../services/dte/transmitter.service'
+import { DTESignerService } from '../services/dte/signer.service'
 
 const db = getPrismaClient()
 

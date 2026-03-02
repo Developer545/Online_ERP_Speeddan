@@ -6,7 +6,7 @@
 // según la legislación salvadoreña vigente (2025-2026).
 // ══════════════════════════════════════════════════════════
 
-import { prisma } from '@main/database/prisma.client'
+import { prisma } from '../database/prisma.client'
 
 const db = prisma
 
