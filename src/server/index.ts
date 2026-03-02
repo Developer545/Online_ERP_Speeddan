@@ -75,15 +75,6 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
-// ── DB ping (temporal para diagnóstico) ─────────────────────
-app.get('/api/health/db', async (_req, res) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`
-    res.json({ ok: true, db: 'connected' })
-  } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message, code: err.code })
-  }
-})
 
 // ── Rutas API ──────────────────────────────────────────────
 import seguridadRoutes     from './routes/seguridad'

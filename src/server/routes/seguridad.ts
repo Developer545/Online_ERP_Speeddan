@@ -22,9 +22,8 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const result = await seguridadController.login(username, password)
     res.json(result)
-  } catch (err: any) {
-    console.error('[login]', err?.message, err?.code)
-    res.status(500).json({ ok: false, error: 'Error al procesar el login', _debug: err?.message })
+  } catch {
+    res.status(500).json({ ok: false, error: 'Error al procesar el login' })
   }
 })
 
