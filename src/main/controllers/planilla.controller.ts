@@ -37,20 +37,26 @@ export const planillaController = {
 
     async updateConfig(items: Array<{ clave: string; valor: number; topeMaximo?: number | null; descripcion?: string }>) {
         for (const item of items) {
-            await db.configPlanilla.upsert({
-                where: { clave: item.clave },
-                update: {
-                    valor: item.valor,
-                    topeMaximo: item.topeMaximo ?? null,
-                    descripcion: item.descripcion
-                },
-                create: {
-                    clave: item.clave,
-                    valor: item.valor,
-                    topeMaximo: item.topeMaximo ?? null,
-                    descripcion: item.descripcion
-                }
-            })
+            const existing = await db.configPlanilla.findFirst({ where: { clave: item.clave } })
+            if (existing) {
+                await db.configPlanilla.update({
+                    where: { id: existing.id },
+                    data: {
+                        valor: item.valor,
+                        topeMaximo: item.topeMaximo ?? null,
+                        descripcion: item.descripcion
+                    }
+                })
+            } else {
+                await db.configPlanilla.create({
+                    data: {
+                        clave: item.clave,
+                        valor: item.valor,
+                        topeMaximo: item.topeMaximo ?? null,
+                        descripcion: item.descripcion
+                    }
+                })
+            }
         }
         return { ok: true }
     },
@@ -78,7 +84,7 @@ export const planillaController = {
         ]
 
         for (const d of defaults) {
-            const exists = await db.configPlanilla.findUnique({ where: { clave: d.clave } })
+            const exists = await db.configPlanilla.findFirst({ where: { clave: d.clave } })
             if (!exists) {
                 await db.configPlanilla.create({
                     data: {
@@ -160,8 +166,8 @@ export const planillaController = {
 
     async generarPlanilla(periodo: string, tipoPago = 'MENSUAL') {
         // Verificar que no exista ya
-        const existe = await db.planilla.findUnique({
-            where: { periodo_tipoPago: { periodo, tipoPago } }
+        const existe = await db.planilla.findFirst({
+            where: { periodo, tipoPago }
         })
         if (existe) {
             return { ok: false, error: `Ya existe una planilla para ${periodo} (${tipoPago})` }

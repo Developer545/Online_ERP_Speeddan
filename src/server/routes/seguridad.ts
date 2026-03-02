@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken'
 import { seguridadController } from '../../main/controllers/seguridad.controller'
 import { prisma } from '../../main/database/prisma.client'
 import { runWithEmpresa } from '../context/tenant.context'
+import { requirePermission } from '../middleware/permissions.middleware'
 
 const router = Router()
 
@@ -21,8 +22,8 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const result = await seguridadController.login(username, password)
     res.json(result)
-  } catch (error: any) {
-    res.status(500).json({ ok: false, error: error.message })
+  } catch {
+    res.status(500).json({ ok: false, error: 'Error al procesar el login' })
   }
 })
 
@@ -96,12 +97,12 @@ router.post('/provision', async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error('[provision]', error.message)
-    res.status(500).json({ ok: false, error: error.message })
+    res.status(500).json({ ok: false, error: 'Error al procesar la provisión' })
   }
 })
 
-// ── USUARIOS (protegidos por auth global en index.ts) ──
-router.get('/usuarios', async (req: Request, res: Response) => {
+// ── USUARIOS (protegidos por auth global + RBAC) ────────
+router.get('/usuarios', requirePermission('seguridad:ver'), async (req: Request, res: Response) => {
   try {
     const { page, pageSize, busqueda } = req.query
     const result = await seguridadController.listarUsuarios(
@@ -110,72 +111,72 @@ router.get('/usuarios', async (req: Request, res: Response) => {
       busqueda as string
     )
     res.json(result)
-  } catch (error: any) {
-    res.status(500).json({ error: error.message })
+  } catch {
+    res.status(500).json({ error: 'Error al listar usuarios' })
   }
 })
 
-router.post('/usuarios', async (req: Request, res: Response) => {
+router.post('/usuarios', requirePermission('seguridad:usuarios'), async (req: Request, res: Response) => {
   try {
     const result = await seguridadController.crearUsuario(req.body)
     res.json(result)
-  } catch (error: any) {
-    res.status(500).json({ error: error.message })
+  } catch {
+    res.status(500).json({ error: 'Error al crear usuario' })
   }
 })
 
-router.put('/usuarios/:id', async (req: Request, res: Response) => {
+router.put('/usuarios/:id', requirePermission('seguridad:usuarios'), async (req: Request, res: Response) => {
   try {
     const result = await seguridadController.actualizarUsuario(Number(req.params.id), req.body)
     res.json(result)
-  } catch (error: any) {
-    res.status(500).json({ error: error.message })
+  } catch {
+    res.status(500).json({ error: 'Error al actualizar usuario' })
   }
 })
 
-router.delete('/usuarios/:id', async (req: Request, res: Response) => {
+router.delete('/usuarios/:id', requirePermission('seguridad:usuarios'), async (req: Request, res: Response) => {
   try {
     const result = await seguridadController.desactivarUsuario(Number(req.params.id))
     res.json(result)
-  } catch (error: any) {
-    res.status(500).json({ error: error.message })
+  } catch {
+    res.status(500).json({ error: 'Error al desactivar usuario' })
   }
 })
 
 // ── ROLES ──────────────────────────────────────────────
-router.get('/roles', async (req: Request, res: Response) => {
+router.get('/roles', requirePermission('seguridad:roles'), async (req: Request, res: Response) => {
   try {
     const result = await seguridadController.listarRoles()
     res.json(result)
-  } catch (error: any) {
-    res.status(500).json({ error: error.message })
+  } catch {
+    res.status(500).json({ error: 'Error al listar roles' })
   }
 })
 
-router.post('/roles', async (req: Request, res: Response) => {
+router.post('/roles', requirePermission('seguridad:roles'), async (req: Request, res: Response) => {
   try {
     const result = await seguridadController.crearRol(req.body)
     res.json(result)
-  } catch (error: any) {
-    res.status(500).json({ error: error.message })
+  } catch {
+    res.status(500).json({ error: 'Error al crear rol' })
   }
 })
 
-router.put('/roles/:id', async (req: Request, res: Response) => {
+router.put('/roles/:id', requirePermission('seguridad:roles'), async (req: Request, res: Response) => {
   try {
     const result = await seguridadController.actualizarRol(Number(req.params.id), req.body)
     res.json(result)
-  } catch (error: any) {
-    res.status(500).json({ error: error.message })
+  } catch {
+    res.status(500).json({ error: 'Error al actualizar rol' })
   }
 })
 
-router.delete('/roles/:id', async (req: Request, res: Response) => {
+router.delete('/roles/:id', requirePermission('seguridad:roles'), async (req: Request, res: Response) => {
   try {
     const result = await seguridadController.eliminarRol(Number(req.params.id))
     res.json(result)
-  } catch (error: any) {
-    res.status(500).json({ error: error.message })
+  } catch {
+    res.status(500).json({ error: 'Error al eliminar rol' })
   }
 })
 
@@ -185,8 +186,8 @@ router.post('/tema', async (req: Request, res: Response) => {
     const { userId, tema, colorCustom } = req.body
     const result = await seguridadController.guardarTema(userId, tema, colorCustom)
     res.json(result)
-  } catch (error: any) {
-    res.status(500).json({ error: error.message })
+  } catch {
+    res.status(500).json({ error: 'Error al guardar tema' })
   }
 })
 
