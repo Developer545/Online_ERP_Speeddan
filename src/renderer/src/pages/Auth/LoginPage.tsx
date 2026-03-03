@@ -4,6 +4,8 @@ import { UserOutlined, LockOutlined, WarningOutlined } from '@ant-design/icons'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import animeLib from 'animejs/lib/anime.es.js'
+import logoWhite from '../../assets/logo_speeddansys_transparent_white.png'
+import logoLight from '../../assets/logo_speeddansys_transparent.png'
 
 const anime: any = animeLib || null
 const { Text } = Typography
@@ -107,7 +109,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div ref={logoRef} className="login-logo-section" style={{ opacity: 0, textAlign: 'center' }}>
           <img
-            src={isDarkTheme ? "/src/assets/logo_speeddansys_transparent_white.png" : "/src/assets/logo_speeddansys_transparent.png"}
+            src={isDarkTheme ? logoWhite : logoLight}
             alt="Speeddansys ERP"
             style={{
               height: 120,

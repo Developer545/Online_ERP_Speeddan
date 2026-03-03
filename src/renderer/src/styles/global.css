@@ -732,3 +732,64 @@ body {
 [data-theme-mode="light"] .ant-table-row-warning:hover td {
   background-color: #fff7cc !important;
 }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — MOBILE & TABLET
+   ══════════════════════════════════════════════ */
+
+/* Login card — tablet */
+@media (max-width: 600px) {
+  .login-card {
+    width: calc(100vw - 32px);
+    padding: 32px 20px 24px;
+    border-radius: 14px;
+  }
+
+  .login-orb-1,
+  .login-orb-2 {
+    opacity: 0.5;
+  }
+
+  .login-logo-section img {
+    height: 90px !important;
+  }
+}
+
+/* Login card — muy pequeño */
+@media (max-width: 380px) {
+  .login-card {
+    width: 100vw;
+    min-height: 100vh;
+    border-radius: 0;
+    padding: 48px 20px 32px;
+  }
+
+  .login-bg {
+    align-items: flex-start;
+  }
+}
+
+/* Tablas en móvil — scroll horizontal */
+@media (max-width: 768px) {
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .page-card {
+    padding: 16px;
+  }
+
+  /* Ant Form en móvil: labels arriba */
+  .ant-form-inline {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* Columnas de páginas en móvil */
+@media (max-width: 576px) {
+  .ant-col-xs-24 {
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+}
