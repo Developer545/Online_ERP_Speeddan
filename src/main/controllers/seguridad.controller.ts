@@ -190,6 +190,13 @@ export const seguridadController = {
           ...(empresaId ? { empresaId } : {})
         }
       })
+    } else {
+      // Actualizar permisos en cada re-provisión para que el rol
+      // siempre tenga el conjunto completo de permisos (ALL_PERMS).
+      role = await prisma.role.update({
+        where: { id: role.id },
+        data: { permisos: JSON.stringify(ALL_PERMS) }
+      })
     }
 
     const passwordHash = await bcrypt.hash(password, 10)

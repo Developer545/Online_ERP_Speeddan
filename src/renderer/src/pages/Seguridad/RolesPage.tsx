@@ -35,7 +35,8 @@ export default function RolesPage() {
     setLoading(true)
     try {
       const res = await window.seguridad.listarRoles()
-      setRoles(res)
+      setRoles(Array.isArray(res) ? res : [])
+      if (!Array.isArray(res) && res?.error) message.error(res.error)
     } catch {
       message.error('Error al cargar roles')
     } finally {

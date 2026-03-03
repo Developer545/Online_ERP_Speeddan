@@ -29,8 +29,9 @@ export default function UsuariosPage() {
     setLoading(true)
     try {
       const res = await window.seguridad.listarUsuarios(p, ps, b || undefined)
-      setUsuarios(res.usuarios)
-      setTotal(res.total)
+      if (res?.error) { message.error(res.error); return }
+      setUsuarios(res.usuarios ?? [])
+      setTotal(res.total ?? 0)
     } catch {
       message.error('Error al cargar usuarios')
     } finally {
@@ -40,7 +41,7 @@ export default function UsuariosPage() {
 
   useEffect(() => {
     cargar()
-    window.seguridad.listarRoles().then(setRoles)
+    window.seguridad.listarRoles().then(r => setRoles(Array.isArray(r) ? r : []))
   }, []) // eslint-disable-line
 
   const handleAbrir = (usuario?: UsuarioRow) => {
