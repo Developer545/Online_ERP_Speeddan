@@ -70,7 +70,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     // Ejecutar el resto del pipeline dentro del contexto de la empresa.
     // El Prisma middleware detectará empresaId vía AsyncLocalStorage
     // e inyectará WHERE empresa_id = X en cada query automáticamente.
-    runWithEmpresa(payload.empresaId, next)
+    // Si empresaId = 0 el usuario no tiene empresa asignada (admin sin empresa)
+    // → no se establece contexto → queries son globales (correcto).
+    if (payload.empresaId > 0) {
+      runWithEmpresa(payload.empresaId, next)
+    } else {
+      next()
+    }
   } catch (err) {
     // Token expirado, malformado o firma inválida
     res.status(401).json({ ok: false, error: 'Token inválido o expirado' })

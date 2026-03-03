@@ -68,7 +68,10 @@ function createClient(): PrismaClient {
     if (empresaId !== null && params.model && TENANT_MODELS.has(params.model)) {
       const readOps = [
         'findFirst', 'findFirstOrThrow', 'findMany',
-        'findUnique', 'findUniqueOrThrow',
+        // findUnique y findUniqueOrThrow NO se filtran aquí porque Prisma 5
+        // valida que el where de findUnique coincida con una constraint única,
+        // y agregar empresaId rompería esa validación. Los PKs son globalmente
+        // únicos (autoincrement), así que no necesitan filtro de tenant.
         'count', 'aggregate', 'groupBy'
       ]
       const mutateOps = ['update', 'updateMany', 'delete', 'deleteMany']

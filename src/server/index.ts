@@ -93,10 +93,6 @@ import gastosRoutes        from './routes/gastos'
 import empleadosRoutes     from './routes/empleados'
 import comprasRoutes       from './routes/compras'
 
-// Rutas públicas: no requieren JWT
-// /login y /provision se gestionan internamente en seguridadRoutes
-app.use('/api/seguridad', seguridadRoutes)
-
 // Middleware global de autenticación JWT
 // Se aplica a TODAS las rutas declaradas DESPUÉS de este punto.
 // Verifica el token y establece el contexto de empresa (AsyncLocalStorage).
@@ -113,6 +109,10 @@ app.use((req, res, next) => {
   }
   return requireAuth(req, res, next)
 })
+
+// Todas las rutas pasan por el middleware de auth de arriba.
+// login y provision son excluidas explícitamente en PUBLIC_API_PATHS.
+app.use('/api/seguridad', seguridadRoutes)
 
 // Rutas protegidas (auth verificado por middleware anterior)
 app.use('/api/configuracion', configuracionRoutes)
