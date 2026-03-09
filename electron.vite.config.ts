@@ -5,6 +5,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
+    define: {
+      // Inyectar VITE_CLOUD_MODE en el proceso main (para import.meta.env)
+      'import.meta.env.VITE_CLOUD_MODE': JSON.stringify(process.env.VITE_CLOUD_MODE ?? 'false')
+    },
     build: {
       watch: {}
     },

@@ -1,0 +1,57 @@
+# ══════════════════════════════════════════════════════════
+# ELECTRON-BUILDER — Speeddansys ERP Cloud (Desktop)
+# Conecta al servidor en Render + Neon PostgreSQL.
+# Sin BD local, sin setup wizard, sin IPC de base de datos.
+# ══════════════════════════════════════════════════════════
+
+appId: com.speeddansys.erp.cloud
+productName: Speeddansys ERP Cloud
+electronDist: node_modules/electron/dist
+asar: false
+
+files:
+  - out/**
+  - resources/**
+  - package.json
+  - "!node_modules"
+  - "!prisma/**"
+
+extraResources:
+  - from: node_modules
+    to: app/node_modules
+    filter:
+      - "**/*"
+      - "!electron/**"
+      - "!electron-builder/**"
+      - "!electron-vite/**"
+      - "!vite/**"
+      - "!typescript/**"
+      - "!eslint/**"
+      - "!prettier/**"
+      - "!@vitejs/**"
+      - "!tsx/**"
+      - "!ts-node-dev/**"
+      - "!@types/**"
+      - "!@electron-toolkit/eslint*/**"
+      - "!@electron-toolkit/tsconfig/**"
+      - "!node-gyp/**"
+      - "!.cache/**"
+      - "!.bin/electron*"
+      - "!.bin/tsc"
+      - "!.bin/vite*"
+      - "!.bin/eslint*"
+      - "!.bin/prettier*"
+      - "!prisma/**"
+      - "!.prisma/**"
+
+directories:
+  output: dist-cloud
+
+win:
+  target:
+    - nsis
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: Speeddansys ERP Cloud

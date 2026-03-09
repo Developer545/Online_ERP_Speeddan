@@ -26,7 +26,12 @@ async function apiFetch(input: string, init?: RequestInit) {
 }
 
 // ── Detección de entorno ──────────────────────────────────
+// VITE_CLOUD_MODE=true → Desktop Cloud (Electron wrapper + servidor online)
+// El renderer siempre usa HTTP aunque esté dentro de Electron.
+const IS_CLOUD_BUILD = import.meta.env.VITE_CLOUD_MODE === 'true'
+
 function isElectron(): boolean {
+  if (IS_CLOUD_BUILD) return false   // Cloud Desktop: forzar modo web (HTTP)
   // @ts-ignore
   return typeof window !== 'undefined' && !!window.electron
 }
@@ -35,6 +40,10 @@ export function initializeWebMock(): void {
   if (isElectron()) {
     console.log('[Web Mock] Entorno Electron detectado. Usando IPC nativo.')
     return
+  }
+
+  if (IS_CLOUD_BUILD) {
+    console.log('[Web Mock] Desktop Cloud — servidor online:', API_BASE_URL)
   }
 
   console.log('[Web Mock] Entorno Web detectado. Usando REST API:', API_BASE_URL)
@@ -284,7 +293,13 @@ export function initializeWebMock(): void {
     historial: async (facturaId: number) =>
       apiFetch(`/pagos/historial/${facturaId}`),
     anular: async (id: number) =>
-      apiFetch(`/pagos/${id}`, { method: 'DELETE' })
+      apiFetch(`/pagos/${id}`, { method: 'DELETE' }),
+    registrarCxP: async (data: unknown) =>
+      apiFetch('/pagos/cxp', { method: 'POST', body: JSON.stringify(data) }),
+    historialCxP: async (compraId: number) =>
+      apiFetch(`/pagos/cxp/historial/${compraId}`),
+    anularCxP: async (id: number) =>
+      apiFetch(`/pagos/cxp/${id}`, { method: 'DELETE' })
   }
 
   // ── Reportes ──────────────────────────────────────────────
