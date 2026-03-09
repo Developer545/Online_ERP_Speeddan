@@ -82,6 +82,14 @@ model Emisor {
   certPassword         String?
   modoSimulacion       Boolean    @default(false)
   licenseKey           String?    @unique  // mapea license_key → empresa en versión web
+
+  // ── Suscripción / Plan (gestionado desde el panel de licencias) ──
+  plan             String    @default("emprendedor")  // emprendedor | empresarial | corporativo_cloud | corporativo_local
+  estado           String    @default("activa")        // activa | prueba | suspendida | cancelada
+  fechaVencimiento DateTime?
+  subdominio       String?   @unique                  // 'acme' → acme.speeddansys.com
+  modulosActivos   Json      @default("{}")
+
   sucursales           Sucursal[]
   createdAt            DateTime   @default(now())
   updatedAt            DateTime   @updatedAt
@@ -302,6 +310,7 @@ model Compra {
   estado          String          @default("REGISTRADA")
   notas           String?
   detalles        DetalleCompra[]
+  pagos           PagoCxP[]
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -453,6 +462,18 @@ model PagoCxC {
   notas       String?
   creadoPor   String?
   createdAt   DateTime @default(now())
+}
+
+model PagoCxP {
+  id         Int      @id @default(autoincrement())
+  compraId   Int
+  compra     Compra   @relation(fields: [compraId], references: [id])
+  monto      Decimal
+  fecha      DateTime @default(now())
+  metodoPago String   // 01=Efectivo, 02=Cheque, 03=Transferencia, 04=Tarjeta
+  referencia String?
+  notas      String?
+  createdAt  DateTime @default(now())
 }
 
 // ═══════════════════════════════════════

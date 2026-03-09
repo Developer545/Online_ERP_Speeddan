@@ -76,6 +76,82 @@ app.get('/api/health', (_req, res) => {
 })
 
 
+// ── Caché en memoria para chequeos de suscripción ──────────
+// Evita llamar al panel de licencias en cada request
+const subscriptionCache = new Map<string, { valido: boolean; exp: number }>()
+const SUBSCRIPTION_CACHE_TTL = parseInt(process.env.SUBSCRIPTION_CACHE_TTL || '300') * 1000
+
+/**
+ * Extrae el subdominio del Host header.
+ * Ej: "acme.speeddansys.com" → "acme"
+ * En dev: usa header X-Empresa-Subdominio o query ?empresa=
+ */
+function extractSubdominio(req: any): string | null {
+  // 1. Header explícito (dev / testing)
+  const explicit = req.headers['x-empresa-subdominio'] as string
+  if (explicit) return explicit.toLowerCase()
+
+  // 2. Query param (dev fallback)
+  if (req.query?.empresa) return String(req.query.empresa).toLowerCase()
+
+  // 3. Subdominio real del Host header
+  const host = (req.headers.host || '').split(':')[0]
+  const parts = host.split('.')
+  // Ej: acme.speeddansys.com → ['acme', 'speeddansys', 'com'] → 'acme'
+  if (parts.length >= 3) return parts[0].toLowerCase()
+
+  return null
+}
+
+/**
+ * Middleware: valida que la suscripción de la empresa esté activa.
+ * Llama a POST /api/empresas/check en el panel de licencias.
+ * En desarrollo o si LICENSE_PANEL_URL no está configurado → bypass.
+ */
+async function checkSubscription(req: any, res: any, next: any) {
+  // Bypass en desarrollo o si no hay panel configurado
+  const panelUrl = process.env.LICENSE_PANEL_URL
+  if (!panelUrl || process.env.NODE_ENV === 'development') return next()
+
+  const subdominio = extractSubdominio(req)
+  if (!subdominio) return next() // sin subdominio → dejar pasar (ej. dominio raíz)
+
+  // Revisar caché primero
+  const cached = subscriptionCache.get(subdominio)
+  if (cached && Date.now() < cached.exp) {
+    if (!cached.valido) {
+      return res.status(402).json({ ok: false, error: 'Suscripción vencida o suspendida. Contacta a soporte.' })
+    }
+    return next()
+  }
+
+  // Consultar panel de licencias
+  try {
+    const response = await fetch(`${panelUrl}/api/empresas/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subdominio }),
+      signal: AbortSignal.timeout(5_000),
+    })
+
+    const data = await response.json() as any
+    const valido = response.ok && data.valido === true
+
+    // Guardar en caché
+    subscriptionCache.set(subdominio, { valido, exp: Date.now() + SUBSCRIPTION_CACHE_TTL })
+
+    if (!valido) {
+      return res.status(402).json({ ok: false, error: data.error || 'Suscripción inválida.' })
+    }
+
+    next()
+  } catch (err: any) {
+    // Si el panel no responde, dejar pasar (fail-open) para no bloquear a los clientes
+    console.warn('[subscription] Panel de licencias no disponible, dejando pasar:', err.message)
+    next()
+  }
+}
+
 // ── Rutas API ──────────────────────────────────────────────
 import seguridadRoutes     from './routes/seguridad'
 import configuracionRoutes from './routes/configuracion'
@@ -99,15 +175,20 @@ import comprasRoutes       from './routes/compras'
 const PUBLIC_API_PATHS = [
   '/api/health',
   '/api/seguridad/login',
-  '/api/seguridad/provision'
+  '/api/seguridad/provision',
+  '/api/seguridad/provision-internal', // auth por X-Internal-Key, no JWT
 ]
 
-app.use((req, res, next) => {
-  // Dejar pasar rutas públicas sin auth
-  if (PUBLIC_API_PATHS.some(path => req.path.startsWith(path))) {
-    return next()
-  }
+// Middleware 1: Autenticación JWT
+app.use((req: any, res: any, next: any) => {
+  if (PUBLIC_API_PATHS.some(p => req.path.startsWith(p))) return next()
   return requireAuth(req, res, next)
+})
+
+// Middleware 2: Validar suscripción activa (solo rutas protegidas)
+app.use((req: any, res: any, next: any) => {
+  if (PUBLIC_API_PATHS.some(p => req.path.startsWith(p))) return next()
+  return checkSubscription(req, res, next)
 })
 
 // Todas las rutas pasan por el middleware de auth de arriba.

@@ -101,6 +101,68 @@ router.post('/provision', async (req: Request, res: Response) => {
   }
 })
 
+// ── PROVISIÓN INTERNA (llamada desde panel de licencias) ─────────────────
+// No requiere JWT — requiere header X-Internal-Key coincidiendo con INTERNAL_API_KEY
+// Crea Emisor + usuario admin para nuevas empresas web desde el panel admin
+router.post('/provision-internal', async (req: Request, res: Response) => {
+  // Verificar clave interna
+  const internalKey = req.headers['x-internal-key']
+  if (!internalKey || internalKey !== process.env.INTERNAL_API_KEY) {
+    return res.status(401).json({ ok: false, error: 'Acceso no autorizado' })
+  }
+
+  try {
+    const {
+      empresa_nombre, empresa_nit, subdominio,
+      username, password, plan, modulos, database_url
+    } = req.body
+
+    if (!empresa_nombre || !username || !password) {
+      return res.status(400).json({ ok: false, error: 'empresa_nombre, username y password son requeridos' })
+    }
+
+    // Verificar que el subdominio no esté en uso
+    if (subdominio) {
+      const existing = await prisma.emisor.findUnique({ where: { subdominio } })
+      if (existing) {
+        return res.status(409).json({ ok: false, error: `El subdominio "${subdominio}" ya está en uso` })
+      }
+    }
+
+    // Crear Emisor con valores por defecto (el cliente los completa en Configuración)
+    const emisor = await prisma.emisor.create({
+      data: {
+        nombre:               empresa_nombre,
+        nit:                  empresa_nit || '0000-000000-000-0',
+        nrc:                  '0000000',
+        codActividad:         '00000',
+        descActividad:        'Por configurar',
+        tipoEstablecimiento:  '01',
+        departamentoCod:      '06',
+        municipioCod:         '23',
+        complementoDireccion: 'Por configurar',
+        correo:               'admin@empresa.com',
+        mhAmbiente:           '00',
+        subdominio:           subdominio || null,
+        plan:                 plan || 'emprendedor',
+        modulosActivos:       modulos || {},
+      }
+    })
+
+    // Crear rol admin + primer usuario dentro del contexto de esta empresa
+    const { userId, roleId } = await runWithEmpresa(emisor.id, () =>
+      seguridadController.provisionUser(username, password, emisor.id)
+    )
+
+    console.log(`[provision-internal] Emisor creado: ${empresa_nombre} (id=${emisor.id}, subdominio=${subdominio})`)
+
+    return res.status(201).json({ ok: true, emisorId: emisor.id, userId, roleId })
+  } catch (error: any) {
+    console.error('[provision-internal]', error.message)
+    res.status(500).json({ ok: false, error: 'Error al provisionar la empresa' })
+  }
+})
+
 // ── USUARIOS (protegidos por auth global + RBAC) ────────
 router.get('/usuarios', requirePermission('seguridad:ver'), async (req: Request, res: Response) => {
   try {
