@@ -71,13 +71,13 @@ export default function Dashboard() {
           window.analytics.distribucionTipo(),
           window.analytics.utilidadReal()
         ])
-        setFacturas(billingRes.facturas)
-        setKpi(kpiRes)
-        setVentasPorDia(diasRes)
-        setTopProductos(topRes)
-        setVentasVsCompras(vsRes)
-        setDistribucionTipo(distRes)
-        setUtilidadReal(utilidadRes)
+        setFacturas(billingRes?.facturas || [])
+        setKpi(kpiRes || null)
+        setVentasPorDia(diasRes?.length ? diasRes : [])
+        setTopProductos(topRes?.length ? topRes : [])
+        setVentasVsCompras(vsRes?.length ? vsRes : [])
+        setDistribucionTipo(distRes?.length ? distRes : [])
+        setUtilidadReal(utilidadRes?.length ? utilidadRes : [])
       } catch {
         // silent
       } finally {
