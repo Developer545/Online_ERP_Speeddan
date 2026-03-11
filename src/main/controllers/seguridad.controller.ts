@@ -139,10 +139,10 @@ export const seguridadController = {
     const jwtSecret = process.env.JWT_SECRET
     const token = jwtSecret
       ? jwt.sign(
-          { userId: user.id, username: user.username, empresaId: empresaId ?? 0, roleId: user.roleId },
-          jwtSecret,
-          { expiresIn: '8h' }
-        )
+        { userId: user.id, username: user.username, empresaId: empresaId ?? 0, roleId: user.roleId },
+        jwtSecret,
+        { expiresIn: '8h' }
+      )
       : undefined
 
     return {
@@ -182,14 +182,21 @@ export const seguridadController = {
       where: { nombre: 'Administrador', empresaId: empresaId ?? null }
     })
     if (!role) {
-      role = await prisma.role.create({
-        data: {
-          nombre: 'Administrador',
-          descripcion: 'Acceso completo al sistema',
-          permisos: JSON.stringify(ALL_PERMS),
-          ...(empresaId ? { empresaId } : {})
-        }
-      })
+      try {
+        role = await prisma.role.create({
+          data: {
+            nombre: 'Administrador',
+            descripcion: 'Acceso completo al sistema',
+            permisos: JSON.stringify(ALL_PERMS),
+            ...(empresaId ? { empresaId } : {})
+          }
+        })
+      } catch {
+        // Si hay unique constraint (rol con ese nombre ya existe globalmente),
+        // recuperamos el existente para no bloquear el aprovisionamiento
+        role = await prisma.role.findFirst({ where: { nombre: 'Administrador' } })
+        if (!role) throw new Error('No se pudo crear ni encontrar el rol Administrador')
+      }
     } else {
       // Actualizar permisos en cada re-provisión para que el rol
       // siempre tenga el conjunto completo de permisos (ALL_PERMS).
