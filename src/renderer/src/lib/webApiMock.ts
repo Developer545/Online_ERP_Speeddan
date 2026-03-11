@@ -22,7 +22,15 @@ async function apiFetch(input: string, init?: RequestInit) {
     ...init,
     headers: { ...authHeaders(), ...(init?.headers ?? {}) }
   })
-  return res.json()
+  const data = await res.json()
+
+  if (res.status === 402) {
+    window.dispatchEvent(new CustomEvent('api-payment-required', { detail: data?.error || 'Suscripción requerida' }))
+  } else if (res.status === 401 && !input.includes('/seguridad/login')) {
+    window.dispatchEvent(new CustomEvent('api-unauthorized'))
+  }
+
+  return data
 }
 
 // ── Detección de entorno ──────────────────────────────────

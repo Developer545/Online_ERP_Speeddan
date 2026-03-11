@@ -58,6 +58,31 @@ export default function MainLayout() {
   const { user, logout } = useAuth()
   const { currentTheme } = useTheme()
 
+  // Listeners globales para errores de API (401, 402)
+  useEffect(() => {
+    let modalOpen = false
+    const handler402 = (e: any) => {
+      if (modalOpen) return
+      modalOpen = true
+      Modal.error({
+        title: 'Suscripción Inactiva o Suspendida',
+        content: e.detail || 'La suscripción de su empresa está inactiva o vencida. Por favor, contacte al administrador o a soporte para revisar su estado de cuenta.',
+        okText: 'Cerrar Sesión',
+        onOk: () => { modalOpen = false; logout() }
+      })
+    }
+    const handler401 = () => {
+      if (modalOpen) return
+      logout()
+    }
+    window.addEventListener('api-payment-required', handler402)
+    window.addEventListener('api-unauthorized', handler401)
+    return () => {
+      window.removeEventListener('api-payment-required', handler402)
+      window.removeEventListener('api-unauthorized', handler401)
+    }
+  }, [logout])
+
   const handleMenuUser = ({ key }: { key: string }) => {
     if (key === 'tema') {
       setThemeModalOpen(true)
