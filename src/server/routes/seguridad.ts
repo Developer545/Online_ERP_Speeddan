@@ -121,10 +121,22 @@ router.post('/provision-internal', async (req: Request, res: Response) => {
       return res.status(400).json({ ok: false, error: 'empresa_nombre, username y password son requeridos' })
     }
 
-    // Verificar si el Emisor con ese subdominio ya existe (idempotente)
+    // Verificar si el Emisor con ese subdominio o NIT ya existe (idempotente)
     let emisor = subdominio
       ? await prisma.emisor.findFirst({ where: { subdominio } })
       : null
+
+    // Si no se encontró por subdominio, buscar por NIT para evitar unique constraint
+    if (!emisor && empresa_nit) {
+      emisor = await prisma.emisor.findFirst({ where: { nit: empresa_nit } })
+      // Si lo encontramos por NIT, actualizar su subdominio si no lo tenía
+      if (emisor && subdominio && !emisor.subdominio) {
+        emisor = await prisma.emisor.update({
+          where: { id: emisor.id },
+          data: { subdominio, plan: plan || emisor.plan, modulosActivos: modulos || emisor.modulosActivos }
+        })
+      }
+    }
 
     if (!emisor) {
       // NRC único por empresa: usar subdominio o timestamp para evitar unique constraint
