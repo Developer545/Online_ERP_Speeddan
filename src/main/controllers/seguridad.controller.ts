@@ -176,11 +176,16 @@ export const seguridadController = {
       'seguridad:ver', 'seguridad:usuarios', 'seguridad:roles'
     ]
 
-    // Buscar/crear rol Administrador para esta empresa
-    // (en desktop empresaId = undefined → busca globalmente)
+    // Buscar/crear rol Administrador para esta empresa de forma idempotente
+    // 1. Busca rol con empresaId exacto
     let role = await prisma.role.findFirst({
       where: { nombre: 'Administrador', empresaId: empresaId ?? null }
     })
+    // 2. Si no hay rol específico, buscar cualquier rol Administrador (puede ser global)
+    if (!role) {
+      role = await prisma.role.findFirst({ where: { nombre: 'Administrador' } })
+    }
+    // 3. Si aún no hay, crear con try-catch para evitar race conditions
     if (!role) {
       try {
         role = await prisma.role.create({
@@ -192,19 +197,15 @@ export const seguridadController = {
           }
         })
       } catch {
-        // Si hay unique constraint (rol con ese nombre ya existe globalmente),
-        // recuperamos el existente para no bloquear el aprovisionamiento
         role = await prisma.role.findFirst({ where: { nombre: 'Administrador' } })
         if (!role) throw new Error('No se pudo crear ni encontrar el rol Administrador')
       }
-    } else {
-      // Actualizar permisos en cada re-provisión para que el rol
-      // siempre tenga el conjunto completo de permisos (ALL_PERMS).
-      role = await prisma.role.update({
-        where: { id: role.id },
-        data: { permisos: JSON.stringify(ALL_PERMS) }
-      })
     }
+    // Siempre actualizar permisos para asegurar set completo
+    role = await prisma.role.update({
+      where: { id: role.id },
+      data: { permisos: JSON.stringify(ALL_PERMS) }
+    })
 
     const passwordHash = await bcrypt.hash(password, 10)
 
