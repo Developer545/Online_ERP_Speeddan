@@ -163,7 +163,8 @@ export const seguridadController = {
   },
 
   // ── PROVISIONAR USUARIO INICIAL (desde activación de licencia) ────
-  // empresaId: undefined = desktop (DB privada), number = empresa en modo web
+  // Usa SQL UPSERT nativo para ser 100% idempotente sin importar
+  // qué unique constraints existan en la BD.
   async provisionUser(username: string, password: string, empresaId?: number) {
     const ALL_PERMS = [
       'clientes:ver', 'clientes:crear', 'clientes:editar', 'clientes:eliminar',
@@ -176,66 +177,76 @@ export const seguridadController = {
       'seguridad:ver', 'seguridad:usuarios', 'seguridad:roles'
     ]
 
-    // Buscar/crear rol Administrador para esta empresa de forma idempotente
-    // 1. Busca rol con empresaId exacto
-    let role = await prisma.role.findFirst({
-      where: { nombre: 'Administrador', empresaId: empresaId ?? null }
-    })
-    // 2. Si no hay rol específico, buscar cualquier rol Administrador (puede ser global)
-    if (!role) {
-      role = await prisma.role.findFirst({ where: { nombre: 'Administrador' } })
-    }
-    // 3. Si aún no hay, crear con try-catch para evitar race conditions
-    if (!role) {
-      try {
-        role = await prisma.role.create({
-          data: {
-            nombre: 'Administrador',
-            descripcion: 'Acceso completo al sistema',
-            permisos: JSON.stringify(ALL_PERMS),
-            ...(empresaId ? { empresaId } : {})
-          }
-        })
-      } catch {
-        role = await prisma.role.findFirst({ where: { nombre: 'Administrador' } })
-        if (!role) throw new Error('No se pudo crear ni encontrar el rol Administrador')
+    const permsJson = JSON.stringify(ALL_PERMS).replace(/'/g, "''")
+
+    // UPSERT idempotente del Rol Administrador
+    // Usa ON CONFLICT en el índice compuesto (empresaId, nombre).
+    // Si hay cualquier conflicto, actualiza los permisos.
+    let roleRows: Array<{ id: number }>
+    if (empresaId) {
+      // Modo web: rol ligado a la empresa
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO "Role" (nombre, descripcion, permisos, activo, "empresaId", "createdAt", "updatedAt")
+        VALUES ('Administrador', 'Acceso completo al sistema', '${permsJson}', true, ${empresaId}, NOW(), NOW())
+        ON CONFLICT ("empresaId", nombre) DO UPDATE SET permisos = EXCLUDED.permisos, "updatedAt" = NOW()
+      `)
+      roleRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
+        `SELECT id FROM "Role" WHERE nombre = 'Administrador' AND "empresaId" = ${empresaId} LIMIT 1`
+      )
+      // Si no encontró con empresaId específico, buscar el global
+      if (!roleRows.length) {
+        roleRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
+          `SELECT id FROM "Role" WHERE nombre = 'Administrador' LIMIT 1`
+        )
+      }
+    } else {
+      // Modo desktop: rol global (sin empresa)
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO "Role" (nombre, descripcion, permisos, activo, "createdAt", "updatedAt")
+        VALUES ('Administrador', 'Acceso completo al sistema', '${permsJson}', true, NOW(), NOW())
+        ON CONFLICT DO NOTHING
+      `)
+      roleRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
+        `SELECT id FROM "Role" WHERE nombre = 'Administrador' AND "empresaId" IS NULL LIMIT 1`
+      )
+      if (!roleRows.length) {
+        roleRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
+          `SELECT id FROM "Role" WHERE nombre = 'Administrador' LIMIT 1`
+        )
       }
     }
-    // Siempre actualizar permisos para asegurar set completo
-    role = await prisma.role.update({
-      where: { id: role.id },
-      data: { permisos: JSON.stringify(ALL_PERMS) }
-    })
 
+    if (!roleRows.length) throw new Error('No se pudo obtener el rol Administrador')
+    const roleId = Number(roleRows[0].id)
+
+    // UPSERT idempotente del Usuario
     const passwordHash = await bcrypt.hash(password, 10)
+    const correo = `${username}@speeddansys.com`
 
-    // Crear o actualizar usuario. El upsert con el unique compuesto
-    // (empresaId, username) requiere que empresaId esté en el where.
-    // En desktop usamos findFirst + update/create porque empresaId es null.
-    const existing = await prisma.user.findFirst({
-      where: { username, empresaId: empresaId ?? null }
-    })
-
-    let userId: number
-    if (existing) {
-      await prisma.user.update({ where: { id: existing.id }, data: { passwordHash, activo: true } })
-      userId = existing.id
+    let userRows: Array<{ id: number }>
+    if (empresaId) {
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO "User" (nombre, username, "passwordHash", correo, "roleId", activo, "empresaId", "createdAt", "updatedAt")
+        VALUES ('Administrador', '${username}', '${passwordHash}', '${correo}', ${roleId}, true, ${empresaId}, NOW(), NOW())
+        ON CONFLICT ("empresaId", username) DO UPDATE
+          SET "passwordHash" = EXCLUDED."passwordHash", activo = true, "roleId" = EXCLUDED."roleId", "updatedAt" = NOW()
+      `)
+      userRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
+        `SELECT id FROM "User" WHERE username = '${username}' AND "empresaId" = ${empresaId} LIMIT 1`
+      )
     } else {
-      const created = await prisma.user.create({
-        data: {
-          nombre: 'Administrador',
-          username,
-          passwordHash,
-          correo: `${username}@speeddansys.com`,
-          roleId: role.id,
-          activo: true,
-          ...(empresaId ? { empresaId } : {})
-        }
-      })
-      userId = created.id
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO "User" (nombre, username, "passwordHash", correo, "roleId", activo, "createdAt", "updatedAt")
+        VALUES ('Administrador', '${username}', '${passwordHash}', '${correo}', ${roleId}, true, NOW(), NOW())
+        ON CONFLICT DO NOTHING
+      `)
+      userRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
+        `SELECT id FROM "User" WHERE username = '${username}' AND "empresaId" IS NULL LIMIT 1`
+      )
     }
 
-    return { ok: true, userId, roleId: role.id }
+    const userId = userRows.length ? Number(userRows[0].id) : 0
+    return { ok: true, userId, roleId }
   },
 
   // ── PREFERENCIAS DE TEMA ───────────────────────────────
