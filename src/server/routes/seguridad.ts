@@ -178,6 +178,36 @@ router.post('/provision-internal', async (req: Request, res: Response) => {
   }
 })
 
+// ── ELIMINAR PROVISIÓN (llamada desde panel de licencias) ────────
+// Borra la empresa y sus usuarios administradores si se elimina desde el panel Web
+router.delete('/provision-internal/:subdominio', async (req: Request, res: Response) => {
+  const internalKey = req.headers['x-internal-key']
+  if (!internalKey || internalKey !== process.env.INTERNAL_API_KEY) {
+    return res.status(401).json({ ok: false, error: 'Acceso no autorizado' })
+  }
+
+  const { subdominio } = req.params
+  if (!subdominio) return res.status(400).json({ ok: false, error: 'Subdominio requerido' })
+
+  try {
+    const emisor = await prisma.emisor.findUnique({ where: { subdominio } })
+    if (!emisor) {
+      return res.status(404).json({ ok: false, error: 'Emisor no encontrado' })
+    }
+
+    // Borrar usuarios, roles y finalmente el emisor
+    await prisma.user.deleteMany({ where: { empresaId: emisor.id } })
+    await prisma.role.deleteMany({ where: { empresaId: emisor.id } })
+    await prisma.emisor.delete({ where: { id: emisor.id } })
+
+    console.log(`[provision-internal] Emisor eliminado: (id=${emisor.id}, subdominio=${subdominio})`)
+    return res.status(200).json({ ok: true, message: 'Emisor eliminado correctamente del ERP' })
+  } catch (error: any) {
+    console.error('[provision-internal DELETE]', error.message)
+    res.status(500).json({ ok: false, error: 'Error al eliminar la empresa' })
+  }
+})
+
 // ── USUARIOS (protegidos por auth global + RBAC) ────────
 router.get('/usuarios', requirePermission('seguridad:ver'), async (req: Request, res: Response) => {
   try {
