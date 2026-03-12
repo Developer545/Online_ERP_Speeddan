@@ -86,9 +86,10 @@ export function initializeWebMock(): void {
   window.seguridad = {
     login: async (username: string, password: string) => {
       try {
+        const subdominio = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : undefined;
         const result = await apiFetch('/seguridad/login', {
           method: 'POST',
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username, password, subdominio })
         })
         // Guardar token si viene en la respuesta
         if (result.token) localStorage.setItem('speeddansys_token', result.token)

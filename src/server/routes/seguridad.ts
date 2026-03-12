@@ -16,13 +16,26 @@ const router = Router()
 // ── AUTENTICACIÓN (pública) ────────────────────────────
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body
+    const { username, password, subdominio } = req.body
     if (!username || !password)
       return res.status(400).json({ ok: false, error: 'Usuario y contraseña son requeridos' })
 
+    // Validar el subdominio si viene y es válido para extraer el tenant context
+    if (subdominio && subdominio !== 'localhost' && subdominio !== '127') {
+      const emisor = await prisma.emisor.findUnique({ where: { subdominio } })
+      if (emisor) {
+        const result = await runWithEmpresa(emisor.id, () =>
+          seguridadController.login(username, password)
+        )
+        return res.json(result)
+      }
+    }
+
+    // Fallback: Si no hay subdominio (desktop, localhost), realizar búsqueda global
     const result = await seguridadController.login(username, password)
     res.json(result)
-  } catch {
+  } catch (error: any) {
+    console.error('[login]', error.message)
     res.status(500).json({ ok: false, error: 'Error al procesar el login' })
   }
 })
@@ -106,7 +119,7 @@ router.post('/provision', async (req: Request, res: Response) => {
 // Crea Emisor + usuario admin para nuevas empresas web desde el panel admin
 router.post('/provision-internal', async (req: Request, res: Response) => {
   // Verificar clave interna
-  const internalKey = req.headers['x-internal-key']
+  const internalKey = req.headers['x-internal-key'] as string
   if (!internalKey || internalKey !== process.env.INTERNAL_API_KEY) {
     return res.status(401).json({ ok: false, error: 'Acceso no autorizado' })
   }
@@ -181,7 +194,7 @@ router.post('/provision-internal', async (req: Request, res: Response) => {
 // ── ELIMINAR PROVISIÓN (llamada desde panel de licencias) ────────
 // Borra la empresa y sus usuarios administradores si se elimina desde el panel Web
 router.delete('/provision-internal/:subdominio', async (req: Request, res: Response) => {
-  const internalKey = req.headers['x-internal-key']
+  const internalKey = req.headers['x-internal-key'] as string
   if (!internalKey || internalKey !== process.env.INTERNAL_API_KEY) {
     return res.status(401).json({ ok: false, error: 'Acceso no autorizado' })
   }
