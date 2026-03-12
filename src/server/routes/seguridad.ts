@@ -173,8 +173,8 @@ router.post('/provision-internal', async (req: Request, res: Response) => {
 
     return res.status(201).json({ ok: true, emisorId: emisor.id, userId, roleId })
   } catch (error: any) {
-    console.error('[provision-internal]', error.message)
-    res.status(500).json({ ok: false, error: 'Error al provisionar la empresa' })
+    console.error('[provision-internal]', error.message, error.stack)
+    res.status(500).json({ ok: false, error: 'Error al provisionar la empresa', detail: error.message, stack: error.stack })
   }
 })
 
