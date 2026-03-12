@@ -179,73 +179,82 @@ export const seguridadController = {
 
     const permsJson = JSON.stringify(ALL_PERMS).replace(/'/g, "''")
 
-    // UPSERT idempotente del Rol Administrador
-    // Usa ON CONFLICT en el índice compuesto (empresaId, nombre).
-    // Si hay cualquier conflicto, actualiza los permisos.
-    let roleRows: Array<{ id: number }>
+    // UPSERT de Rol
+    let roleId: number
     if (empresaId) {
-      // Modo web: rol ligado a la empresa
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO "Role" (nombre, descripcion, permisos, activo, "empresaId", "createdAt", "updatedAt")
-        VALUES ('Administrador', 'Acceso completo al sistema', '${permsJson}', true, ${empresaId}, NOW(), NOW())
-        ON CONFLICT ("empresaId", nombre) DO UPDATE SET permisos = EXCLUDED.permisos, "updatedAt" = NOW()
-      `)
-      roleRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
-        `SELECT id FROM "Role" WHERE nombre = 'Administrador' AND "empresaId" = ${empresaId} LIMIT 1`
-      )
-      // Si no encontró con empresaId específico, buscar el global
-      if (!roleRows.length) {
-        roleRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
-          `SELECT id FROM "Role" WHERE nombre = 'Administrador' LIMIT 1`
-        )
+      let r = await prisma.role.findFirst({ where: { empresaId, nombre: 'Administrador' } })
+      if (r) {
+        r = await prisma.role.update({ where: { id: r.id }, data: { permisos: permsJson } })
+      } else {
+        r = await prisma.role.create({
+          data: {
+            nombre: 'Administrador',
+            descripcion: 'Acceso completo al sistema',
+            permisos: permsJson,
+            activo: true,
+            empresaId
+          }
+        })
       }
+      roleId = r.id
     } else {
-      // Modo desktop: rol global (sin empresa)
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO "Role" (nombre, descripcion, permisos, activo, "createdAt", "updatedAt")
-        VALUES ('Administrador', 'Acceso completo al sistema', '${permsJson}', true, NOW(), NOW())
-        ON CONFLICT DO NOTHING
-      `)
-      roleRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
-        `SELECT id FROM "Role" WHERE nombre = 'Administrador' AND "empresaId" IS NULL LIMIT 1`
-      )
-      if (!roleRows.length) {
-        roleRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
-          `SELECT id FROM "Role" WHERE nombre = 'Administrador' LIMIT 1`
-        )
+      let r = await prisma.role.findFirst({ where: { empresaId: null, nombre: 'Administrador' } })
+      if (!r) {
+        r = await prisma.role.create({
+          data: {
+            nombre: 'Administrador',
+            descripcion: 'Acceso completo al sistema',
+            permisos: permsJson,
+            activo: true
+          }
+        })
       }
+      roleId = r.id
     }
 
-    if (!roleRows.length) throw new Error('No se pudo obtener el rol Administrador')
-    const roleId = Number(roleRows[0].id)
-
-    // UPSERT idempotente del Usuario
+    // UPSERT de Usuario
     const passwordHash = await bcrypt.hash(password, 10)
     const correo = `${username}@speeddansys.com`
+    let userId: number
 
-    let userRows: Array<{ id: number }>
     if (empresaId) {
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO "User" (nombre, username, "passwordHash", correo, "roleId", activo, "empresaId", "createdAt", "updatedAt")
-        VALUES ('Administrador', '${username}', '${passwordHash}', '${correo}', ${roleId}, true, ${empresaId}, NOW(), NOW())
-        ON CONFLICT ("empresaId", username) DO UPDATE
-          SET "passwordHash" = EXCLUDED."passwordHash", activo = true, "roleId" = EXCLUDED."roleId", "updatedAt" = NOW()
-      `)
-      userRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
-        `SELECT id FROM "User" WHERE username = '${username}' AND "empresaId" = ${empresaId} LIMIT 1`
-      )
+      let u = await prisma.user.findFirst({ where: { empresaId, username } })
+      if (u) {
+        u = await prisma.user.update({
+          where: { id: u.id },
+          data: { passwordHash, roleId, activo: true }
+        })
+      } else {
+        u = await prisma.user.create({
+          data: {
+            nombre: 'Administrador',
+            username,
+            passwordHash,
+            correo,
+            roleId,
+            activo: true,
+            empresaId
+          }
+        })
+      }
+      userId = u.id
     } else {
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO "User" (nombre, username, "passwordHash", correo, "roleId", activo, "createdAt", "updatedAt")
-        VALUES ('Administrador', '${username}', '${passwordHash}', '${correo}', ${roleId}, true, NOW(), NOW())
-        ON CONFLICT DO NOTHING
-      `)
-      userRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
-        `SELECT id FROM "User" WHERE username = '${username}' AND "empresaId" IS NULL LIMIT 1`
-      )
+      let u = await prisma.user.findFirst({ where: { empresaId: null, username } })
+      if (!u) {
+        u = await prisma.user.create({
+          data: {
+            nombre: 'Administrador',
+            username,
+            passwordHash,
+            correo,
+            roleId,
+            activo: true
+          }
+        })
+      }
+      userId = u.id
     }
 
-    const userId = userRows.length ? Number(userRows[0].id) : 0
     return { ok: true, userId, roleId }
   },
 
