@@ -8,12 +8,39 @@
 // En dev local:      VITE_API_URL = ''  (usa /api relativo)
 const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '') + '/api'
 
-// ── Helper: headers con auth token si existe ─────────────
+// ── Helper: obtener el subdominio del tenant ──────────────
+function getTenantSubdominio(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+
+  const hostname = window.location.hostname;
+
+  // 1. Si es un subdominio personalizado real (ej. acme.speeddansys.com)
+  // Ignoramos localhost y el dominio genérico de vercel
+  if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.includes('vercel.app')) {
+    const parts = hostname.split('.');
+    if (parts.length >= 3 && parts[0] !== 'www') {
+      return parts[0];
+    }
+  }
+
+  // 2. Si usamos path routing (ej. speeddansys.vercel.app/stillhouse)
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  if (pathParts.length > 0) {
+    return pathParts[0];
+  }
+
+  return undefined;
+}
+
+// ── Helper: headers con auth token y tenant si existe ────
 function authHeaders(): HeadersInit {
   const token = localStorage.getItem('speeddansys_token')
+  const subdominio = getTenantSubdominio();
+
   return {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(subdominio ? { 'x-empresa-subdominio': subdominio } : {})
   }
 }
 
@@ -86,7 +113,7 @@ export function initializeWebMock(): void {
   window.seguridad = {
     login: async (username: string, password: string) => {
       try {
-        const subdominio = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : undefined;
+        const subdominio = getTenantSubdominio();
         const result = await apiFetch('/seguridad/login', {
           method: 'POST',
           body: JSON.stringify({ username, password, subdominio })

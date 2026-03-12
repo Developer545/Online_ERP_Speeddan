@@ -94,11 +94,15 @@ function extractSubdominio(req: any): string | null {
   // 2. Query param (dev fallback)
   if (req.query?.empresa) return String(req.query.empresa).toLowerCase()
 
-  // 3. Subdominio real del Host header
+  // 3. Subdominio real del Host header (custom domains)
   const host = (req.headers.host || '').split(':')[0]
-  const parts = host.split('.')
-  // Ej: acme.speeddansys.com → ['acme', 'speeddansys', 'com'] → 'acme'
-  if (parts.length >= 3) return parts[0].toLowerCase()
+  if (!host.includes('vercel.app') && host !== 'localhost' && host !== '127.0.0.1') {
+    const parts = host.split('.')
+    // Ej: acme.speeddansys.com → ['acme', 'speeddansys', 'com'] → 'acme'
+    if (parts.length >= 3 && parts[0] !== 'www') {
+      return parts[0].toLowerCase()
+    }
+  }
 
   return null
 }
@@ -153,21 +157,21 @@ async function checkSubscription(req: any, res: any, next: any) {
 }
 
 // ── Rutas API ──────────────────────────────────────────────
-import seguridadRoutes     from './routes/seguridad'
+import seguridadRoutes from './routes/seguridad'
 import configuracionRoutes from './routes/configuracion'
-import clientesRoutes      from './routes/clientes'
-import proveedoresRoutes   from './routes/proveedores'
-import productosRoutes     from './routes/productos'
-import billingRoutes       from './routes/billing'
-import cxcRoutes           from './routes/cxc'
-import cxpRoutes           from './routes/cxp'
-import pagosRoutes         from './routes/pagos'
-import reportesRoutes      from './routes/reportes'
-import analyticsRoutes     from './routes/analytics'
-import planillaRoutes      from './routes/planilla'
-import gastosRoutes        from './routes/gastos'
-import empleadosRoutes     from './routes/empleados'
-import comprasRoutes       from './routes/compras'
+import clientesRoutes from './routes/clientes'
+import proveedoresRoutes from './routes/proveedores'
+import productosRoutes from './routes/productos'
+import billingRoutes from './routes/billing'
+import cxcRoutes from './routes/cxc'
+import cxpRoutes from './routes/cxp'
+import pagosRoutes from './routes/pagos'
+import reportesRoutes from './routes/reportes'
+import analyticsRoutes from './routes/analytics'
+import planillaRoutes from './routes/planilla'
+import gastosRoutes from './routes/gastos'
+import empleadosRoutes from './routes/empleados'
+import comprasRoutes from './routes/compras'
 
 // Middleware global de autenticación JWT
 // Se aplica a TODAS las rutas declaradas DESPUÉS de este punto.
@@ -197,19 +201,19 @@ app.use('/api/seguridad', seguridadRoutes)
 
 // Rutas protegidas (auth verificado por middleware anterior)
 app.use('/api/configuracion', configuracionRoutes)
-app.use('/api/clientes',      clientesRoutes)
-app.use('/api/proveedores',   proveedoresRoutes)
-app.use('/api/productos',     productosRoutes)
-app.use('/api/billing',       billingRoutes)
-app.use('/api/cxc',           cxcRoutes)
-app.use('/api/cxp',           cxpRoutes)
-app.use('/api/pagos',         pagosRoutes)
-app.use('/api/reportes',      reportesRoutes)
-app.use('/api/analytics',     analyticsRoutes)
-app.use('/api/planilla',      planillaRoutes)
-app.use('/api/gastos',        gastosRoutes)
-app.use('/api/empleados',     empleadosRoutes)
-app.use('/api/compras',       comprasRoutes)
+app.use('/api/clientes', clientesRoutes)
+app.use('/api/proveedores', proveedoresRoutes)
+app.use('/api/productos', productosRoutes)
+app.use('/api/billing', billingRoutes)
+app.use('/api/cxc', cxcRoutes)
+app.use('/api/cxp', cxpRoutes)
+app.use('/api/pagos', pagosRoutes)
+app.use('/api/reportes', reportesRoutes)
+app.use('/api/analytics', analyticsRoutes)
+app.use('/api/planilla', planillaRoutes)
+app.use('/api/gastos', gastosRoutes)
+app.use('/api/empleados', empleadosRoutes)
+app.use('/api/compras', comprasRoutes)
 
 // ── Servir React SPA (solo en modo NO-Vercel, ej. Render/VPS) ──
 // En Vercel el SPA se sirve desde vercel.json rewrites.
