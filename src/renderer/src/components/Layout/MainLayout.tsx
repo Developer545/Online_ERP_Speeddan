@@ -34,11 +34,18 @@ export default function MainLayout() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [envMode, setEnvMode] = useState<'test' | 'production'>('test')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [empresaNombre, setEmpresaNombre] = useState<string>('')
   const screens = useBreakpoint()
   const isMobile = !screens.md  // xs/sm = < 768px
 
   useEffect(() => {
     window.appControl?.getEnvMode().then(setEnvMode).catch(() => { })
+  }, [])
+
+  useEffect(() => {
+    window.configuracion?.getEmisor()
+      .then(e => { if (e?.nombre) setEmpresaNombre(e.nombre) })
+      .catch(() => { })
   }, [])
 
   // Ctrl+K abre búsqueda global
@@ -341,8 +348,34 @@ export default function MainLayout() {
             </div>
           </div>
 
-          {/* Derecha: badge + usuario */}
+          {/* Derecha: nombre empresa + badge + usuario */}
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, marginLeft: 'auto', flexShrink: 0 }}>
+
+            {!isMobile && empresaNombre && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '4px 10px',
+                borderRadius: 6,
+                background: 'var(--theme-primary-bg, rgba(22,119,255,0.1))',
+                border: '1px solid var(--theme-primary-border, rgba(22,119,255,0.25))',
+                maxWidth: 220,
+              }}>
+                <BankOutlined style={{ color: 'var(--theme-primary)', fontSize: 13, flexShrink: 0 }} />
+                <Text style={{
+                  color: 'var(--theme-primary)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: 180
+                }}>
+                  {empresaNombre}
+                </Text>
+              </div>
+            )}
 
             {!isMobile && (
               <Tooltip title={envMode === 'production'
