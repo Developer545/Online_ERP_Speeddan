@@ -6,16 +6,28 @@
 
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
+import compression from 'compression'
 import dotenv from 'dotenv'
 import rateLimit from 'express-rate-limit'
 import { prisma, registerTenantResolver } from '../main/database/prisma.client'
 import { getEmpresaId } from './context/tenant.context'
 import { requireAuth } from './middleware/auth.middleware'
+import { globalErrorHandler } from './middleware/errorHandler'
 
 dotenv.config()
 
 const app = express()
 const port = process.env.PORT || 3000
+
+// ── Seguridad: cabeceras HTTP hardening ─────────────────────
+app.use(helmet({
+  // Content Security Policy desactivado aquí; configurar si se sirve HTML propio
+  contentSecurityPolicy: false,
+}))
+
+// ── Compresión gzip ─────────────────────────────────────────
+app.use(compression())
 
 // ── Registrar el resolver de tenant en el Prisma middleware ─
 // Esto enlaza AsyncLocalStorage (tenant.context) con el filtro
@@ -46,7 +58,18 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }))
 
-// ── Rate limiting: rutas públicas sensibles ─────────────────
+// ── Rate limiting ────────────────────────────────────────────
+
+// General: todas las rutas de la API
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,       // 1 minuto
+  max: 300,                   // 300 req/min por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Demasiadas peticiones. Intente en un momento.' }
+})
+
+// Autenticación: más estricto para prevenir fuerza bruta
 const loginLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutos
   max: 15,
@@ -55,6 +78,7 @@ const loginLimiter = rateLimit({
   message: { ok: false, error: 'Demasiados intentos. Intente en 10 minutos.' }
 })
 
+// Provisión de empresa: muy restrictivo
 const provisionLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 5,
@@ -63,6 +87,7 @@ const provisionLimiter = rateLimit({
   message: { ok: false, error: 'Límite de provisión alcanzado. Intente en 1 hora.' }
 })
 
+app.use('/api', apiLimiter)
 app.use('/api/seguridad/login', loginLimiter)
 app.use('/api/seguridad/provision', provisionLimiter)
 
@@ -227,6 +252,11 @@ if (!process.env.VERCEL && process.env.NODE_ENV === 'production') {
     }
   })
 }
+
+// ── Global error handler ─────────────────────────────────────
+// DEBE ir DESPUÉS de todas las rutas.
+// Captura AppError, ZodError, Prisma errors y genéricos (500).
+app.use(globalErrorHandler)
 
 // Solo escuchar cuando NO es Vercel (Vercel usa serverless functions)
 if (!process.env.VERCEL) {
