@@ -559,3 +559,24 @@ model AppConfig {
   @@unique([empresaId, clave])
   @@index([empresaId])
 }
+
+// AUDITORIA
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  empresaId Int?
+  userId    Int?
+  username  String?
+  accion    String
+  entidad   String
+  entidadId String?
+  detalle   String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([empresaId])
+  @@index([createdAt])
+  @@index([accion])
+  @@index([entidad])
+}
