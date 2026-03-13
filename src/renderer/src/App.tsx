@@ -69,7 +69,7 @@ import CxCVencidasPage from '@pages/Reportes/CxCVencidasPage'
 
 // ── Rutas protegidas ─────────────────────────────────────
 function ProtectedRoutes() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
 
   // Disparar notificaciones nativas del SO al iniciar sesión
   useEffect(() => {
@@ -82,6 +82,14 @@ function ProtectedRoutes() {
     }
     return undefined
   }, [user])
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--theme-body-bg, #0d1117)' }}>
+        <Spin size="large" />
+      </div>
+    )
+  }
 
   if (!user) return <LoginPage />
 
