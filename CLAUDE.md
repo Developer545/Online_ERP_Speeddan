@@ -21,7 +21,7 @@ ERP de facturación y contabilidad empresarial con **dos modos**:
 - **UI**: Ant Design tema oscuro — bg `#0d1117`, surface `#161b22`, primary `#1677ff`
 - **Backend**: Express + Node.js + Prisma + PostgreSQL
 - **Panel Admin**: Express + HTML/CSS/JS vanilla + PostgreSQL (`admin-licencias/`)
-- **BD prod**: Neon PostgreSQL | **BD local**: `cliente_db` (postgres/123321, puerto 5432)
+- **BD prod**: Neon PostgreSQL | **BD local**: `cliente_db` (credenciales en MEMORY.md local, puerto 5432)
 - **Deploy**: Vercel (ERP web + panel admin) | BD: Neon PostgreSQL
 
 ## Rutas locales
