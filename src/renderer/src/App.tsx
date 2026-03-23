@@ -67,6 +67,16 @@ import Quincena25Page from '@pages/Planilla/Quincena25Page'
 import ResumenF07Page from '@pages/Reportes/ResumenF07Page'
 import CxCVencidasPage from '@pages/Reportes/CxCVencidasPage'
 
+// Contabilidad
+import CatalogoCuentasPage from '@pages/Contabilidad/CatalogoCuentasPage'
+import AsientosContablesPage from '@pages/Contabilidad/AsientosContablesPage'
+import PeriodosContablesPage from '@pages/Contabilidad/PeriodosContablesPage'
+import LibroDiarioPage from '@pages/Contabilidad/LibroDiarioPage'
+import LibroMayorPage from '@pages/Contabilidad/LibroMayorPage'
+import BalanceComprobacionPage from '@pages/Contabilidad/BalanceComprobacionPage'
+import EstadoResultadosPage from '@pages/Contabilidad/EstadoResultadosPage'
+import BalanceGeneralPage from '@pages/Contabilidad/BalanceGeneralPage'
+
 // ── Rutas protegidas ─────────────────────────────────────
 function ProtectedRoutes() {
   const { user, loading } = useAuth()
@@ -129,6 +139,14 @@ function ProtectedRoutes() {
         <Route path="planilla/aguinaldo" element={<AguinaldoPage />} />
         <Route path="planilla/vacaciones" element={<VacacionesPage />} />
         <Route path="planilla/quincena25" element={<Quincena25Page />} />
+        <Route path="contabilidad/catalogo" element={<CatalogoCuentasPage />} />
+        <Route path="contabilidad/asientos" element={<AsientosContablesPage />} />
+        <Route path="contabilidad/periodos" element={<PeriodosContablesPage />} />
+        <Route path="contabilidad/libro-diario" element={<LibroDiarioPage />} />
+        <Route path="contabilidad/libro-mayor" element={<LibroMayorPage />} />
+        <Route path="contabilidad/balance-comprobacion" element={<BalanceComprobacionPage />} />
+        <Route path="contabilidad/estado-resultados" element={<EstadoResultadosPage />} />
+        <Route path="contabilidad/balance-general" element={<BalanceGeneralPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

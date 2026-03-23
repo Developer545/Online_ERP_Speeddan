@@ -20,7 +20,8 @@ import {
   BankOutlined,
   SearchOutlined,
   DollarOutlined,
-  MenuOutlined
+  MenuOutlined,
+  BookOutlined
 } from '@ant-design/icons'
 import logoWhite from '../../assets/logo_speeddansys_transparent_white.png'
 
@@ -168,6 +169,21 @@ export default function MainLayout() {
         { key: '/planilla/vacaciones', label: 'Vacaciones' },
         { key: '/planilla/quincena25', label: 'Quincena 25' },
         { key: '/planilla/configuracion', label: 'Configuración' }
+      ]
+    },
+    {
+      key: 'contabilidad',
+      icon: <BookOutlined />,
+      label: 'Contabilidad',
+      children: [
+        { key: '/contabilidad/catalogo', label: 'Catálogo de Cuentas' },
+        { key: '/contabilidad/asientos', label: 'Asientos Contables' },
+        { key: '/contabilidad/periodos', label: 'Períodos Contables' },
+        { key: '/contabilidad/libro-diario', label: 'Libro Diario' },
+        { key: '/contabilidad/libro-mayor', label: 'Libro Mayor' },
+        { key: '/contabilidad/balance-comprobacion', label: 'Balance de Comprobación' },
+        { key: '/contabilidad/estado-resultados', label: 'Estado de Resultados' },
+        { key: '/contabilidad/balance-general', label: 'Balance General' }
       ]
     },
     {

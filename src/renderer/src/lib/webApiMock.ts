@@ -420,6 +420,71 @@ export function initializeWebMock(): void {
     }
   }
 
+  // ── Contabilidad ─────────────────────────────────────────
+  // @ts-ignore
+  window.contabilidad = {
+    listarCuentas: async (busqueda?: string, tipo?: string) => {
+      const params = new URLSearchParams()
+      if (busqueda) params.set('busqueda', busqueda)
+      if (tipo) params.set('tipo', tipo)
+      return apiFetch(`/contabilidad/cuentas?${params}`)
+    },
+    crearCuenta: async (data: unknown) =>
+      apiFetch('/contabilidad/cuentas', { method: 'POST', body: JSON.stringify(data) }),
+    editarCuenta: async (id: number, data: unknown) =>
+      apiFetch(`/contabilidad/cuentas/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    eliminarCuenta: async (id: number) =>
+      apiFetch(`/contabilidad/cuentas/${id}`, { method: 'DELETE' }),
+    importarCatalogo: async (cuentas: unknown) =>
+      apiFetch('/contabilidad/cuentas/importar', { method: 'POST', body: JSON.stringify({ cuentas }) }),
+    obtenerCatalogoEstandar: async () =>
+      apiFetch('/contabilidad/cuentas/estandar'),
+    listarPeriodos: async (anio?: number) => {
+      const params = anio ? `?anio=${anio}` : ''
+      return apiFetch(`/contabilidad/periodos${params}`)
+    },
+    crearPeriodo: async (data: unknown) =>
+      apiFetch('/contabilidad/periodos', { method: 'POST', body: JSON.stringify(data) }),
+    cerrarPeriodo: async (id: number) =>
+      apiFetch(`/contabilidad/periodos/${id}/cerrar`, { method: 'PUT' }),
+    reabrirPeriodo: async (id: number) =>
+      apiFetch(`/contabilidad/periodos/${id}/reabrir`, { method: 'PUT' }),
+    listarAsientos: async (periodoId?: number, estado?: string, page?: number, pageSize?: number) => {
+      const params = new URLSearchParams({ page: String(page ?? 1), pageSize: String(pageSize ?? 20) })
+      if (periodoId) params.set('periodoId', String(periodoId))
+      if (estado) params.set('estado', estado)
+      return apiFetch(`/contabilidad/asientos?${params}`)
+    },
+    obtenerAsiento: async (id: number) => apiFetch(`/contabilidad/asientos/${id}`),
+    crearAsiento: async (data: unknown) =>
+      apiFetch('/contabilidad/asientos', { method: 'POST', body: JSON.stringify(data) }),
+    editarAsiento: async (id: number, data: unknown) =>
+      apiFetch(`/contabilidad/asientos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    aprobarAsiento: async (id: number) =>
+      apiFetch(`/contabilidad/asientos/${id}/aprobar`, { method: 'PUT' }),
+    anularAsiento: async (id: number) =>
+      apiFetch(`/contabilidad/asientos/${id}/anular`, { method: 'PUT' }),
+    eliminarAsiento: async (id: number) =>
+      apiFetch(`/contabilidad/asientos/${id}`, { method: 'DELETE' }),
+    balanceComprobacion: async (periodoId?: number, desde?: string, hasta?: string) => {
+      const params = new URLSearchParams()
+      if (periodoId) params.set('periodoId', String(periodoId))
+      if (desde) params.set('desde', desde)
+      if (hasta) params.set('hasta', hasta)
+      return apiFetch(`/contabilidad/reportes/balance-comprobacion?${params}`)
+    },
+    estadoResultados: async (desde: string, hasta: string) =>
+      apiFetch(`/contabilidad/reportes/estado-resultados?desde=${desde}&hasta=${hasta}`),
+    balanceGeneral: async (fecha: string) =>
+      apiFetch(`/contabilidad/reportes/balance-general?fecha=${fecha}`),
+    libroMayor: async (cuentaId: number, desde: string, hasta: string) =>
+      apiFetch(`/contabilidad/reportes/libro-mayor?cuentaId=${cuentaId}&desde=${desde}&hasta=${hasta}`),
+    libroDiario: async (desde: string, hasta: string) =>
+      apiFetch(`/contabilidad/reportes/libro-diario?desde=${desde}&hasta=${hasta}`),
+    auxiliarCuenta: async (cuentaId: number, desde: string, hasta: string) =>
+      apiFetch(`/contabilidad/reportes/auxiliar?cuentaId=${cuentaId}&desde=${desde}&hasta=${hasta}`)
+  }
+
   // ── Notificaciones (no aplica en web) ─────────────────────
   // @ts-ignore
   window.notifications = {

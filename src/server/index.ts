@@ -197,6 +197,7 @@ import planillaRoutes from './routes/planilla'
 import gastosRoutes from './routes/gastos'
 import empleadosRoutes from './routes/empleados'
 import comprasRoutes from './routes/compras'
+import contabilidadRoutes from './routes/contabilidad'
 
 // Middleware global de autenticación JWT
 // Se aplica a TODAS las rutas declaradas DESPUÉS de este punto.
@@ -239,6 +240,7 @@ app.use('/api/planilla', planillaRoutes)
 app.use('/api/gastos', gastosRoutes)
 app.use('/api/empleados', empleadosRoutes)
 app.use('/api/compras', comprasRoutes)
+app.use('/api/contabilidad', contabilidadRoutes)
 
 // ── Servir React SPA (solo en modo NO-Vercel, ej. Render/VPS) ──
 // En Vercel el SPA se sirve desde vercel.json rewrites.

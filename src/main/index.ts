@@ -35,6 +35,7 @@ import { registerPagosCxpIPC } from './ipc/pagos-cxp.ipc'
 import { registerPlanillaIPC } from './ipc/planilla.ipc'
 import { registerGastosIPC } from './ipc/gastos.ipc'
 import { registerLicenseIPC } from './ipc/license.ipc'
+import { registerContabilidadIPC } from './ipc/contabilidad.ipc'
 
 // Aplicar modo de entorno ANTES de que Prisma sea instanciado
 // (solo en modo local — en cloud no hay BD local)
@@ -131,6 +132,7 @@ app.whenReady().then(async () => {
   registerPlanillaIPC()
   registerGastosIPC()
   registerLicenseIPC()
+  registerContabilidadIPC()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

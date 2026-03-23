@@ -103,6 +103,9 @@ interface Window {
     registrar: (data: { facturaId: number; monto: number; metodoPago: string; referencia?: string; notas?: string }) => Promise<PagoCxCRow>
     historial: (facturaId: number) => Promise<PagoCxCRow[]>
     anular: (pagoId: number) => Promise<boolean>
+    registrarCxP: (data: { compraId: number; monto: number; metodoPago: string; referencia?: string; notas?: string }) => Promise<PagoCxPRow>
+    historialCxP: (compraId: number) => Promise<PagoCxPRow[]>
+    anularCxP: (pagoId: number) => Promise<boolean>
   }
   cxp: {
     listar: () => Promise<CxPItem[]>
@@ -126,6 +129,35 @@ interface Window {
     editar: (id: number, data: { categoriaId?: number; fecha?: string; monto?: number; descripcion?: string; notas?: string }) => Promise<GastoInternoRow>
     eliminar: (id: number) => Promise<void>
     resumenPorCategoria: (mes: number, anio: number) => Promise<{ categoria: string; total: number; color: string }[]>
+  }
+  contabilidad: {
+    // Catálogo
+    listarCuentas: (busqueda?: string, tipo?: string) => Promise<CatalogoCuentaRow[]>
+    crearCuenta: (data: unknown) => Promise<CatalogoCuentaRow>
+    editarCuenta: (id: number, data: unknown) => Promise<CatalogoCuentaRow>
+    eliminarCuenta: (id: number) => Promise<CatalogoCuentaRow>
+    importarCatalogo: (cuentas: unknown) => Promise<{ created: number; total: number }>
+    obtenerCatalogoEstandar: () => Promise<CuentaEstandarRow[]>
+    // Períodos
+    listarPeriodos: (anio?: number) => Promise<PeriodoContableRow[]>
+    crearPeriodo: (data: { nombre: string; anio: number; mes: number }) => Promise<PeriodoContableRow>
+    cerrarPeriodo: (id: number) => Promise<PeriodoContableRow>
+    reabrirPeriodo: (id: number) => Promise<PeriodoContableRow>
+    // Asientos
+    listarAsientos: (periodoId?: number, estado?: string, page?: number, pageSize?: number) => Promise<{ asientos: AsientoContableRow[]; total: number; page: number; pageSize: number }>
+    obtenerAsiento: (id: number) => Promise<AsientoContableDetalle | null>
+    crearAsiento: (data: unknown) => Promise<AsientoContableDetalle>
+    editarAsiento: (id: number, data: unknown) => Promise<AsientoContableDetalle>
+    aprobarAsiento: (id: number) => Promise<AsientoContableDetalle>
+    anularAsiento: (id: number) => Promise<AsientoContableDetalle>
+    eliminarAsiento: (id: number) => Promise<void>
+    // Reportes
+    balanceComprobacion: (periodoId?: number, desde?: string, hasta?: string) => Promise<BalanceComprobacionResult>
+    estadoResultados: (desde: string, hasta: string) => Promise<EstadoResultadosResult>
+    balanceGeneral: (fecha: string) => Promise<BalanceGeneralResult>
+    libroMayor: (cuentaId: number, desde: string, hasta: string) => Promise<LibroMayorResult>
+    libroDiario: (desde: string, hasta: string) => Promise<LibroDiarioResult>
+    auxiliarCuenta: (cuentaId: number, desde: string, hasta: string) => Promise<LibroMayorResult>
   }
   documentos: {
     leerJson: (codigoGeneracion: string) => Promise<{ ok: boolean; json?: unknown; error?: string }>
@@ -490,6 +522,17 @@ interface PagoCxCRow {
   createdAt: string
 }
 
+interface PagoCxPRow {
+  id: number
+  compraId: number
+  monto: number
+  fecha: string
+  metodoPago: string
+  referencia?: string | null
+  notas?: string | null
+  createdAt: string
+}
+
 interface CategoriaGastoRow {
   id: number
   nombre: string
@@ -516,4 +559,127 @@ interface UtilidadRealMes {
   compras: number
   gastos: number
   utilidad: number
+}
+
+// ── Contabilidad ────────────────────────────────────────────
+
+interface CatalogoCuentaRow {
+  id: number
+  codigo: string
+  nombre: string
+  descripcion?: string | null
+  tipo: string
+  naturaleza: string
+  nivel: number
+  cuentaPadreId?: number | null
+  cuentaPadre?: { id: number; codigo: string; nombre: string } | null
+  aceptaMovimiento: boolean
+  activa: boolean
+  _count?: { subcuentas: number; detallesAsiento: number }
+}
+
+interface CuentaEstandarRow {
+  codigo: string
+  nombre: string
+  tipo: string
+  naturaleza: string
+  nivel: number
+  codigoPadre: string | null
+  aceptaMovimiento: boolean
+}
+
+interface PeriodoContableRow {
+  id: number
+  nombre: string
+  anio: number
+  mes: number
+  fechaInicio: string
+  fechaFin: string
+  estado: string
+  _count?: { asientos: number }
+}
+
+interface AsientoContableRow {
+  id: number
+  numero: number
+  fecha: string
+  descripcion: string
+  periodoId: number
+  tipo: string
+  estado: string
+  documentoRef?: string | null
+  totalDebe: number | string
+  totalHaber: number | string
+  creadoPor?: string | null
+  periodo?: { nombre: string }
+  _count?: { detalles: number }
+}
+
+interface DetalleAsientoRow {
+  id: number
+  asientoId: number
+  cuentaId: number
+  cuenta: { id: number; codigo: string; nombre: string; tipo: string }
+  descripcion?: string | null
+  debe: number | string
+  haber: number | string
+}
+
+interface AsientoContableDetalle extends AsientoContableRow {
+  periodo?: { id: number; nombre: string; estado?: string }
+  detalles: DetalleAsientoRow[]
+}
+
+interface BalanceComprobacionResult {
+  cuentas: Array<{
+    cuentaId: number; codigo: string; nombre: string; tipo: string; naturaleza: string; nivel: number
+    debitos: number; creditos: number; saldoDeudor: number; saldoAcreedor: number
+  }>
+  totalDebitos: number
+  totalCreditos: number
+  totalSaldoDeudor: number
+  totalSaldoAcreedor: number
+}
+
+interface EstadoResultadosResult {
+  ingresos: Array<{ nombre: string; codigo: string; saldo: number }>
+  costos: Array<{ nombre: string; codigo: string; saldo: number }>
+  gastos: Array<{ nombre: string; codigo: string; saldo: number }>
+  totalIngresos: number
+  totalCostos: number
+  totalGastos: number
+  utilidadBruta: number
+  utilidadOperacion: number
+  utilidadNeta: number
+  desde: string
+  hasta: string
+}
+
+interface BalanceGeneralResult {
+  activos: Array<{ codigo: string; nombre: string; tipo: string; saldo: number; nivel: number }>
+  pasivos: Array<{ codigo: string; nombre: string; tipo: string; saldo: number; nivel: number }>
+  patrimonio: Array<{ codigo: string; nombre: string; tipo: string; saldo: number; nivel: number }>
+  resultadoEjercicio: number
+  totalActivos: number
+  totalPasivos: number
+  totalPatrimonio: number
+  cuadra: boolean
+  fecha: string
+}
+
+interface LibroMayorResult {
+  cuenta: { id: number; codigo: string; nombre: string; tipo: string; naturaleza: string }
+  saldoAnterior: number
+  movimientos: Array<{
+    fecha: string; asientoNumero: number; asientoId: number
+    descripcion: string; debe: number; haber: number; saldo: number
+  }>
+  desde: string
+  hasta: string
+}
+
+interface LibroDiarioResult {
+  asientos: Array<AsientoContableDetalle>
+  desde: string
+  hasta: string
 }

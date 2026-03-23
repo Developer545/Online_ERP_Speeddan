@@ -108,6 +108,9 @@ model Emisor {
   planillas       Planilla[]       @relation("PlanillaEmpresa")
   configPlanilla  ConfigPlanilla[] @relation("ConfigPlanillaEmpresa")
   appConfigs      AppConfig[]      @relation("AppConfigEmpresa")
+  catalogoCuentas CatalogoCuenta[] @relation("CatalogoCuentaEmpresa")
+  periodosContables PeriodoContable[] @relation("PeriodoContableEmpresa")
+  asientosContables AsientoContable[] @relation("AsientoContableEmpresa")
 }
 
 model Sucursal {
@@ -558,6 +561,148 @@ model AppConfig {
 
   @@unique([empresaId, clave])
   @@index([empresaId])
+}
+
+// ═══════════════════════════════════════
+// CONTABILIDAD
+// ═══════════════════════════════════════
+
+enum TipoCuenta {
+  ACTIVO
+  PASIVO
+  PATRIMONIO
+  INGRESO
+  COSTO
+  GASTO
+  CIERRE
+  ORDEN_DEUDORA
+  ORDEN_ACREEDORA
+}
+
+enum NaturalezaCuenta {
+  DEUDORA
+  ACREEDORA
+}
+
+enum EstadoPeriodo {
+  ABIERTO
+  CERRADO
+}
+
+enum TipoAsiento {
+  DIARIO
+  AJUSTE
+  CIERRE
+  APERTURA
+}
+
+enum EstadoAsiento {
+  BORRADOR
+  APROBADO
+  ANULADO
+}
+
+model CatalogoCuenta {
+  id               Int              @id @default(autoincrement())
+  codigo           String
+  nombre           String
+  descripcion      String?
+  tipo             TipoCuenta
+  naturaleza       NaturalezaCuenta
+  nivel            Int
+  cuentaPadreId    Int?
+  cuentaPadre      CatalogoCuenta?  @relation("CuentaJerarquia", fields: [cuentaPadreId], references: [id])
+  subcuentas       CatalogoCuenta[] @relation("CuentaJerarquia")
+  aceptaMovimiento Boolean          @default(false)
+  activa           Boolean          @default(true)
+  detallesAsiento  DetalleAsiento[]
+  saldos           SaldoCuenta[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  empresaId Int?
+  empresa   Emisor? @relation("CatalogoCuentaEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId])
+  @@index([cuentaPadreId])
+}
+
+model PeriodoContable {
+  id         Int            @id @default(autoincrement())
+  nombre     String
+  anio       Int
+  mes        Int
+  fechaInicio DateTime
+  fechaFin    DateTime
+  estado     EstadoPeriodo  @default(ABIERTO)
+  asientos   AsientoContable[]
+  saldos     SaldoCuenta[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  empresaId Int?
+  empresa   Emisor? @relation("PeriodoContableEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, anio, mes])
+  @@index([empresaId])
+}
+
+model AsientoContable {
+  id           Int              @id @default(autoincrement())
+  numero       Int
+  fecha        DateTime
+  descripcion  String
+  periodoId    Int
+  periodo      PeriodoContable  @relation(fields: [periodoId], references: [id])
+  tipo         TipoAsiento      @default(DIARIO)
+  estado       EstadoAsiento    @default(BORRADOR)
+  documentoRef String?
+  totalDebe    Decimal          @default(0)
+  totalHaber   Decimal          @default(0)
+  creadoPor    String?
+  detalles     DetalleAsiento[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  empresaId Int?
+  empresa   Emisor? @relation("AsientoContableEmpresa", fields: [empresaId], references: [id])
+
+  @@index([empresaId])
+  @@index([periodoId])
+  @@index([fecha])
+}
+
+model DetalleAsiento {
+  id          Int             @id @default(autoincrement())
+  asientoId   Int
+  asiento     AsientoContable @relation(fields: [asientoId], references: [id], onDelete: Cascade)
+  cuentaId    Int
+  cuenta      CatalogoCuenta  @relation(fields: [cuentaId], references: [id])
+  descripcion String?
+  debe        Decimal         @default(0)
+  haber       Decimal         @default(0)
+
+  @@index([asientoId])
+  @@index([cuentaId])
+}
+
+model SaldoCuenta {
+  id            Int             @id @default(autoincrement())
+  cuentaId      Int
+  cuenta        CatalogoCuenta  @relation(fields: [cuentaId], references: [id])
+  periodoId     Int
+  periodo       PeriodoContable @relation(fields: [periodoId], references: [id])
+  saldoAnterior Decimal         @default(0)
+  debitos       Decimal         @default(0)
+  creditos      Decimal         @default(0)
+  saldoFinal    Decimal         @default(0)
+
+  empresaId Int?
+
+  @@unique([cuentaId, periodoId])
+  @@index([empresaId])
+  @@index([periodoId])
 }
 
 // AUDITORIA
