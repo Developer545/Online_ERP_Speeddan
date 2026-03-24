@@ -42,9 +42,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyThemeCSSVars(currentTheme, customColor || undefined)
   }, [currentTheme, customColor])
 
+  // Sincroniza tema en el objeto de usuario guardado en localStorage para que
+  // sobreviva el refresco de página sin ser sobreescrito por loadUserTheme
+  const syncUserStorage = (tema: string, colorCustom: string) => {
+    try {
+      const raw = localStorage.getItem('speeddansys_user')
+      if (raw) {
+        const u = JSON.parse(raw)
+        u.tema = tema
+        u.colorCustom = colorCustom || null
+        localStorage.setItem('speeddansys_user', JSON.stringify(u))
+      }
+    } catch { /* ignorar */ }
+  }
+
   const setTheme = (id: string, userId?: number) => {
     setThemeId(id)
     localStorage.setItem(STORAGE_KEY, id)
+    syncUserStorage(id, customColor)
     if (userId) {
       window.seguridad.guardarTema(userId, id, customColor || undefined).catch(() => { })
     }
@@ -57,6 +72,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     } else {
       localStorage.removeItem(CUSTOM_COLOR_KEY)
     }
+    syncUserStorage(themeId, color)
     if (userId) {
       window.seguridad.guardarTema(userId, themeId, color || undefined).catch(() => { })
     }
