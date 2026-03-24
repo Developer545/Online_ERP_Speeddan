@@ -274,7 +274,33 @@ export default function MainLayout() {
         />
       </div>
 
-      {/* Menú */}
+      {/* Botón colapsar/expandir — arriba, debajo del logo */}
+      <div
+        onClick={() => {
+          const next = !collapsed
+          setCollapsed(next)
+          if (!next) {
+            setOpenKeys([getActiveGroupKey(location.pathname)])
+          }
+        }}
+        style={{
+          height:         36,
+          display:        'flex',
+          alignItems:     'center',
+          justifyContent: collapsed ? 'center' : 'flex-end',
+          padding:        collapsed ? 0 : '0 14px',
+          cursor:         'pointer',
+          borderBottom:   '1px solid rgba(255,255,255,0.08)',
+          color:          'rgba(255,255,255,0.4)',
+          fontSize:       13,
+          transition:     'all 0.2s',
+          flexShrink:     0,
+        }}
+      >
+        {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+      </div>
+
+      {/* Menú con scroll vertical */}
       <div style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1 }}>
         <Menu
           theme={currentTheme.menuTheme}
@@ -293,32 +319,6 @@ export default function MainLayout() {
             background:  'var(--theme-menu-item-bg)',
           }}
         />
-      </div>
-
-      {/* Botón colapsar/expandir */}
-      <div
-        onClick={() => {
-          const next = !collapsed
-          setCollapsed(next)
-          if (!next) {
-            // Al expandir, abrir el grupo activo
-            setOpenKeys([getActiveGroupKey(location.pathname)])
-          }
-        }}
-        style={{
-          height:         40,
-          display:        'flex',
-          alignItems:     'center',
-          justifyContent: collapsed ? 'center' : 'flex-end',
-          padding:        collapsed ? 0 : '0 18px',
-          cursor:         'pointer',
-          borderTop:      '1px solid rgba(255,255,255,0.08)',
-          color:          'rgba(255,255,255,0.4)',
-          fontSize:       14,
-          transition:     'all 0.2s',
-        }}
-      >
-        {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
       </div>
     </>
   )
