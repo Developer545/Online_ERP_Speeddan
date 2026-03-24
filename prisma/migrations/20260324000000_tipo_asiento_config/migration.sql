@@ -37,9 +37,14 @@ BEGIN
           AND column_name = 'tipo'
           AND udt_name = 'TipoAsiento'
     ) THEN
+        -- Primero quitar el DEFAULT que depende del enum
+        ALTER TABLE "AsientoContable" ALTER COLUMN "tipo" DROP DEFAULT;
+        -- Convertir columna de enum a TEXT
         ALTER TABLE "AsientoContable" ALTER COLUMN "tipo" TYPE TEXT USING "tipo"::TEXT;
+        -- Restaurar DEFAULT como TEXT
+        ALTER TABLE "AsientoContable" ALTER COLUMN "tipo" SET DEFAULT 'DIARIO';
     END IF;
 END $$;
 
--- 4. Eliminar enum si existe
-DROP TYPE IF EXISTS "TipoAsiento";
+-- 4. Eliminar enum si existe (CASCADE para limpiar cualquier dependencia restante)
+DROP TYPE IF EXISTS "TipoAsiento" CASCADE;
