@@ -250,7 +250,7 @@ export default function MainLayout() {
 
   // ── Contenido del sider ────────────────────────────────────
   const siderContent = (
-    <>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Logo — pequeño cuando colapsado, completo cuando expandido */}
       <div style={{
         height:         64,
@@ -301,7 +301,7 @@ export default function MainLayout() {
       </div>
 
       {/* Menú con scroll vertical */}
-      <div style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1 }}>
+      <div style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, minHeight: 0 }}>
         <Menu
           theme={currentTheme.menuTheme}
           mode="inline"
