@@ -1,17 +1,26 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Card, Table, Typography, Row, Col, Statistic, Tag, Space,
-  Button, Badge, Tooltip, message, Input
+  Button, Badge, Tooltip, message, Input, Modal, Form,
+  InputNumber, Select, Descriptions, Divider
 } from 'antd'
 import {
   DollarOutlined, ExclamationCircleOutlined, ClockCircleOutlined,
-  CheckCircleOutlined, ReloadOutlined, FileExcelOutlined, SearchOutlined
+  CheckCircleOutlined, ReloadOutlined, FileExcelOutlined, SearchOutlined,
+  PlusOutlined, HistoryOutlined, DeleteOutlined
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { formatCurrency } from '@utils/format'
 import dayjs from 'dayjs'
 
 const { Title, Text } = Typography
+
+const METODOS_PAGO = [
+  { value: '01', label: 'Efectivo' },
+  { value: '02', label: 'Cheque' },
+  { value: '03', label: 'Transferencia' },
+  { value: '04', label: 'Tarjeta' }
+]
 
 function exportarXLSX(datos: CxPItem[]) {
   import('exceljs').then(({ default: ExcelJS }) => {
@@ -97,6 +106,18 @@ export default function CxPPage() {
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
 
+  // Modal registrar pago
+  const [pagoModal, setPagoModal] = useState(false)
+  const [pagoCompra, setPagoCompra] = useState<CxPItem | null>(null)
+  const [pagoLoading, setPagoLoading] = useState(false)
+  const [pagoForm] = Form.useForm()
+
+  // Modal historial
+  const [histModal, setHistModal] = useState(false)
+  const [histCompra, setHistCompra] = useState<CxPItem | null>(null)
+  const [histData, setHistData] = useState<PagoCxPRow[]>([])
+  const [histLoading, setHistLoading] = useState(false)
+
   const cargar = useCallback(async () => {
     setLoading(true)
     try {
@@ -123,11 +144,83 @@ export default function CxPPage() {
     )
     : datos
 
+  // ── Abrir modal de pago ─────────────────────────────────
+  const abrirPago = (compra: CxPItem) => {
+    setPagoCompra(compra)
+    pagoForm.resetFields()
+    pagoForm.setFieldsValue({ metodoPago: '01' })
+    setPagoModal(true)
+  }
+
+  // ── Registrar pago ──────────────────────────────────────
+  const registrarPago = async (values: { monto: number; metodoPago: string; referencia?: string; notas?: string }) => {
+    if (!pagoCompra) return
+    setPagoLoading(true)
+    try {
+      await window.pagos.registrarCxP({
+        compraId: pagoCompra.id,
+        monto: values.monto,
+        metodoPago: values.metodoPago,
+        referencia: values.referencia,
+        notas: values.notas
+      })
+      message.success('Pago registrado correctamente')
+      setPagoModal(false)
+      cargar()
+    } catch (err: any) {
+      message.error(err?.message ?? 'Error al registrar pago')
+    } finally {
+      setPagoLoading(false)
+    }
+  }
+
+  // ── Ver historial de pagos ──────────────────────────────
+  const verHistorial = async (compra: CxPItem) => {
+    setHistCompra(compra)
+    setHistLoading(true)
+    setHistModal(true)
+    try {
+      const hist = await window.pagos.historialCxP(compra.id)
+      setHistData(hist)
+    } catch {
+      message.error('Error al cargar historial')
+    } finally {
+      setHistLoading(false)
+    }
+  }
+
+  // ── Anular pago ─────────────────────────────────────────
+  const anularPago = (pagoId: number) => {
+    Modal.confirm({
+      title: 'Anular pago',
+      content: '¿Confirma que desea anular este pago? Esta acción no se puede deshacer.',
+      okText: 'Anular',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancelar',
+      onOk: async () => {
+        try {
+          await window.pagos.anularCxP(pagoId)
+          message.success('Pago anulado')
+          if (histCompra) {
+            const hist = await window.pagos.historialCxP(histCompra.id)
+            setHistData(hist)
+          }
+          cargar()
+        } catch (err: any) {
+          message.error(err?.message ?? 'Error al anular pago')
+        }
+      }
+    })
+  }
+
   const estadoTag = (estado: string, dias: number) => {
     if (estado === 'VENCIDA') return <Tag color="red" icon={<ExclamationCircleOutlined />}>VENCIDA ({Math.abs(dias)}d atrás)</Tag>
     if (estado === 'POR_VENCER') return <Tag color="orange" icon={<ClockCircleOutlined />}>VENCE EN {dias}d</Tag>
     return <Tag color="green" icon={<CheckCircleOutlined />}>VIGENTE ({dias}d)</Tag>
   }
+
+  const metodoPagoLabel = (codigo: string) =>
+    METODOS_PAGO.find(m => m.value === codigo)?.label ?? codigo
 
   const columns: ColumnsType<CxPItem> = [
     {
@@ -190,6 +283,77 @@ export default function CxPPage() {
         { text: 'Vigente', value: 'VIGENTE' }
       ],
       onFilter: (value, r) => r.estadoCxP === value
+    },
+    {
+      title: 'Acciones',
+      key: 'acciones',
+      width: 120,
+      align: 'center',
+      render: (_, r) => (
+        <Space size={4}>
+          <Tooltip title="Registrar abono">
+            <Button
+              size="small"
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => abrirPago(r)}
+            />
+          </Tooltip>
+          <Tooltip title="Ver historial de pagos">
+            <Button
+              size="small"
+              icon={<HistoryOutlined />}
+              onClick={() => verHistorial(r)}
+            />
+          </Tooltip>
+        </Space>
+      )
+    }
+  ]
+
+  const histColumns: ColumnsType<PagoCxPRow> = [
+    {
+      title: 'Fecha',
+      dataIndex: 'fecha',
+      key: 'fecha',
+      width: 120,
+      render: (v: string) => dayjs(v).format('DD/MM/YYYY HH:mm')
+    },
+    {
+      title: 'Método',
+      dataIndex: 'metodoPago',
+      key: 'metodo',
+      width: 120,
+      render: (v: string) => <Tag>{metodoPagoLabel(v)}</Tag>
+    },
+    {
+      title: 'Monto',
+      dataIndex: 'monto',
+      key: 'monto',
+      align: 'right',
+      render: (v: number) => <Text strong style={{ color: '#52c41a' }}>{formatCurrency(v)}</Text>
+    },
+    {
+      title: 'Referencia',
+      dataIndex: 'referencia',
+      key: 'ref',
+      render: (v: string | null) => v ? <Text type="secondary">{v}</Text> : <Text type="secondary">—</Text>
+    },
+    {
+      title: '',
+      key: 'acc',
+      width: 60,
+      align: 'center',
+      render: (_, r) => (
+        <Tooltip title="Anular pago">
+          <Button
+            size="small"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => anularPago(r.id)}
+          />
+        </Tooltip>
+      )
     }
   ]
 
@@ -287,7 +451,7 @@ export default function CxPPage() {
           rowKey="id"
           loading={loading}
           size="small"
-          scroll={{ x: 900 }}
+          scroll={{ x: 1000 }}
           pagination={{ pageSize: 20, showTotal: t => `${t} documentos` }}
           rowClassName={r =>
             r.estadoCxP === 'VENCIDA' ? 'row-vencida'
@@ -313,10 +477,128 @@ export default function CxPPage() {
                   </Tooltip>
                 </Space>
               </Table.Summary.Cell>
+              <Table.Summary.Cell index={3} />
             </Table.Summary.Row>
           ) : null}
         />
       </Card>
+
+      {/* Modal: Registrar Abono */}
+      <Modal
+        title={
+          <Space>
+            <DollarOutlined style={{ color: '#ff4d4f' }} />
+            Registrar Abono — {pagoCompra?.numeroDocumento}
+          </Space>
+        }
+        open={pagoModal}
+        onCancel={() => setPagoModal(false)}
+        footer={null}
+        width={480}
+        destroyOnClose
+      >
+        {pagoCompra && (
+          <>
+            <Descriptions size="small" column={2} style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="Proveedor" span={2}>
+                {pagoCompra.proveedor?.nombre ?? '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Total">
+                <Text strong style={{ color: '#ff4d4f' }}>{formatCurrency(pagoCompra.total)}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Vencimiento">
+                {dayjs(pagoCompra.fechaVencimiento).format('DD/MM/YYYY')}
+              </Descriptions.Item>
+            </Descriptions>
+            <Divider style={{ margin: '8px 0 16px' }} />
+
+            <Form form={pagoForm} layout="vertical" onFinish={registrarPago}>
+              <Form.Item
+                name="monto"
+                label="Monto del abono"
+                rules={[
+                  { required: true, message: 'Ingrese el monto' },
+                  { type: 'number', min: 0.01, message: 'El monto debe ser mayor a cero' }
+                ]}
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  prefix="$"
+                  precision={2}
+                  min={0.01}
+                  max={pagoCompra.total}
+                  placeholder="0.00"
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="metodoPago"
+                label="Método de pago"
+                rules={[{ required: true, message: 'Seleccione el método' }]}
+              >
+                <Select options={METODOS_PAGO} />
+              </Form.Item>
+
+              <Form.Item name="referencia" label="Referencia / N° cheque / comprobante">
+                <Input placeholder="Opcional" />
+              </Form.Item>
+
+              <Form.Item name="notas" label="Notas">
+                <Input.TextArea rows={2} placeholder="Opcional" />
+              </Form.Item>
+
+              <Form.Item style={{ marginBottom: 0 }}>
+                <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                  <Button onClick={() => setPagoModal(false)}>Cancelar</Button>
+                  <Button type="primary" htmlType="submit" loading={pagoLoading} danger>
+                    Registrar Abono
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </>
+        )}
+      </Modal>
+
+      {/* Modal: Historial de pagos */}
+      <Modal
+        title={
+          <Space>
+            <HistoryOutlined />
+            Historial de Pagos — {histCompra?.numeroDocumento}
+          </Space>
+        }
+        open={histModal}
+        onCancel={() => setHistModal(false)}
+        footer={<Button onClick={() => setHistModal(false)}>Cerrar</Button>}
+        width={700}
+        destroyOnClose
+      >
+        {histCompra && (
+          <Descriptions size="small" column={2} style={{ marginBottom: 12 }}>
+            <Descriptions.Item label="Proveedor" span={2}>
+              {histCompra.proveedor?.nombre ?? '—'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Total compra">
+              <Text strong style={{ color: '#ff4d4f' }}>{formatCurrency(histCompra.total)}</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="Total abonado">
+              <Text strong style={{ color: '#52c41a' }}>
+                {formatCurrency(histData.reduce((a, p) => a + Number(p.monto), 0))}
+              </Text>
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+        <Table
+          dataSource={histData}
+          columns={histColumns}
+          rowKey="id"
+          loading={histLoading}
+          size="small"
+          pagination={false}
+          locale={{ emptyText: 'Sin pagos registrados' }}
+        />
+      </Modal>
 
       <style>{`
         .row-vencida td { background: rgba(255, 77, 79, 0.04) !important; }
