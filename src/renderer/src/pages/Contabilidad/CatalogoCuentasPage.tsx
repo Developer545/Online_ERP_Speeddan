@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Card, Table, Button, Form, Modal, Input, Select, Space, Row, Col,
   Statistic, message, Tag, TreeSelect, Popconfirm, Typography, InputNumber,
-  Checkbox, Alert, Divider, Steps, Upload
+  Checkbox, Alert, Divider, Steps
 } from 'antd'
 import {
   PlusOutlined, ReloadOutlined, DeleteOutlined, EditOutlined,

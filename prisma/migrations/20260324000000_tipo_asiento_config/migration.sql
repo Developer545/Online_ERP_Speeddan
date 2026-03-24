@@ -2,7 +2,7 @@
 -- Convierte tipo de enum a TEXT y crea tabla de tipos personalizados
 
 -- 1. Tabla de tipos de asiento configurables
-CREATE TABLE "TipoAsientoConfig" (
+CREATE TABLE IF NOT EXISTS "TipoAsientoConfig" (
     "id"        SERIAL PRIMARY KEY,
     "nombre"    TEXT NOT NULL,
     "color"     TEXT NOT NULL DEFAULT 'blue',
@@ -13,18 +13,33 @@ CREATE TABLE "TipoAsientoConfig" (
         REFERENCES "Emisor"("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
-CREATE UNIQUE INDEX "TipoAsientoConfig_empresaId_nombre_key" ON "TipoAsientoConfig"("empresaId", "nombre");
-CREATE INDEX "TipoAsientoConfig_empresaId_idx" ON "TipoAsientoConfig"("empresaId");
+CREATE UNIQUE INDEX IF NOT EXISTS "TipoAsientoConfig_empresaId_nombre_key" ON "TipoAsientoConfig"("empresaId", "nombre");
+CREATE INDEX IF NOT EXISTS "TipoAsientoConfig_empresaId_idx" ON "TipoAsientoConfig"("empresaId");
 
--- 2. Insertar tipos por defecto globales (empresaId NULL = aplica a todos)
-INSERT INTO "TipoAsientoConfig" ("nombre", "color", "empresaId") VALUES
-    ('DIARIO',   'blue',   NULL),
-    ('AJUSTE',   'orange', NULL),
-    ('CIERRE',   'red',    NULL),
-    ('APERTURA', 'green',  NULL);
+-- 2. Insertar tipos por defecto solo si no existen
+INSERT INTO "TipoAsientoConfig" ("nombre", "color", "empresaId")
+SELECT nombre, color, NULL FROM (VALUES
+    ('DIARIO',   'blue'),
+    ('AJUSTE',   'orange'),
+    ('CIERRE',   'red'),
+    ('APERTURA', 'green')
+) AS v(nombre, color)
+WHERE NOT EXISTS (
+    SELECT 1 FROM "TipoAsientoConfig" WHERE "empresaId" IS NULL AND "nombre" = v.nombre
+);
 
--- 3. Cambiar columna tipo de enum a TEXT en AsientoContable
-ALTER TABLE "AsientoContable" ALTER COLUMN "tipo" TYPE TEXT USING "tipo"::TEXT;
+-- 3. Cambiar columna tipo de enum a TEXT (solo si aún es enum)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'AsientoContable'
+          AND column_name = 'tipo'
+          AND udt_name = 'TipoAsiento'
+    ) THEN
+        ALTER TABLE "AsientoContable" ALTER COLUMN "tipo" TYPE TEXT USING "tipo"::TEXT;
+    END IF;
+END $$;
 
--- 4. Eliminar enum ya que la columna ahora es TEXT
-DROP TYPE "TipoAsiento";
+-- 4. Eliminar enum si existe
+DROP TYPE IF EXISTS "TipoAsiento";
