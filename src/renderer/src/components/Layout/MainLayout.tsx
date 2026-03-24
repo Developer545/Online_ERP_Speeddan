@@ -320,7 +320,7 @@ export default function MainLayout() {
           }}
         />
       </div>
-    </>
+    </div>
   )
 
   const siderMargin = isMobile ? 0 : (collapsed ? SIDER_COLLAPSED : SIDER_W)
