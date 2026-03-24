@@ -275,24 +275,24 @@ export default function MainLayout() {
       borderRight:    '1px solid rgba(255,255,255,0.06)',
       flexShrink:     0,
     }}>
-      {/* Logo */}
+      {/* Zona del logo (alineada con la del panel) */}
       <div style={{
-        height:          56,
+        height:          72,
         display:         'flex',
         alignItems:      'center',
         justifyContent:  'center',
         borderBottom:    '1px solid rgba(255,255,255,0.08)',
         flexShrink:      0,
       }}>
-        <img src={logoWhite} alt="Speeddansys" style={{ width: 38, height: 38, objectFit: 'contain' }} />
+        <img src={logoWhite} alt="S" style={{ width: 36, height: 36, objectFit: 'contain' }} />
       </div>
 
       {/* Grupos */}
-      <div style={{ flex: 1, padding: '6px 5px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div style={{ flex: 1, padding: '8px 6px', display: 'flex', flexDirection: 'column', gap: 2 }}>
         {NAV_GROUPS.map(group => {
           const isActive = activeGroup === group.key
           return (
-            <Tooltip key={group.key} title={group.label} placement="right" mouseEnterDelay={0.6}>
+            <Tooltip key={group.key} title={group.label} placement="right" mouseEnterDelay={0.5}>
               <div
                 onClick={() => handleRailClick(group)}
                 style={{
@@ -300,13 +300,13 @@ export default function MainLayout() {
                   flexDirection:  'column',
                   alignItems:     'center',
                   justifyContent: 'center',
-                  padding:        '7px 2px',
+                  padding:        '8px 2px',
                   cursor:         'pointer',
                   borderRadius:   8,
                   background:     isActive ? 'var(--theme-primary)' : 'transparent',
-                  color:          isActive ? '#fff' : 'rgba(255,255,255,0.5)',
-                  fontSize:       17,
-                  gap:            3,
+                  color:          isActive ? '#fff' : 'rgba(255,255,255,0.45)',
+                  fontSize:       18,
+                  gap:            4,
                   transition:     'background 0.15s, color 0.15s',
                   userSelect:     'none',
                 }}
@@ -332,7 +332,7 @@ export default function MainLayout() {
     </div>
   )
 
-  // ── Panel de sub-ítems ─────────────────────────────────────
+  // ── Panel de sub-ítems (siempre visible) ───────────────────
   const panelEl = (
     <div style={{
       width:         PANEL_W,
@@ -340,34 +340,48 @@ export default function MainLayout() {
       background:    'var(--theme-sider-bg)',
       display:       'flex',
       flexDirection: 'column',
-      borderRight:   '1px solid rgba(255,255,255,0.06)',
+      borderRight:   '1px solid rgba(255,255,255,0.08)',
       flexShrink:    0,
-      opacity:       panelGroup ? 1 : 0,
-      pointerEvents: panelGroup ? 'auto' : 'none',
-      transition:    'opacity 0.15s',
     }}>
-      {/* Encabezado del panel */}
+      {/* Logo completo siempre visible */}
       <div style={{
-        height:        56,
-        display:       'flex',
-        alignItems:    'center',
-        padding:       '0 14px',
-        borderBottom:  '1px solid rgba(255,255,255,0.08)',
-        gap:           8,
-        flexShrink:    0,
-        color:         'var(--theme-primary)',
-        fontWeight:    700,
-        fontSize:      13,
-        letterSpacing: 0.3,
+        height:          72,
+        display:         'flex',
+        alignItems:      'center',
+        justifyContent:  'center',
+        padding:         '0 12px',
+        borderBottom:    '1px solid rgba(255,255,255,0.08)',
+        flexShrink:      0,
       }}>
-        {panelGroup?.icon}
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {panelGroup?.label}
-        </span>
+        <img
+          src={logoWhite}
+          alt="Speeddansys"
+          style={{ width: '100%', maxHeight: 52, objectFit: 'contain' }}
+        />
       </div>
 
+      {/* Encabezado de sección (cuando hay grupo activo con hijos) */}
+      {panelGroup && (
+        <div style={{
+          padding:       '10px 14px 6px',
+          color:         'var(--theme-primary)',
+          fontWeight:    700,
+          fontSize:      11,
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+          opacity:       0.9,
+          display:       'flex',
+          alignItems:    'center',
+          gap:           6,
+          flexShrink:    0,
+        }}>
+          {panelGroup.icon}
+          {panelGroup.label}
+        </div>
+      )}
+
       {/* Lista de sub-ítems */}
-      <div style={{ flex: 1, padding: '8px 8px', overflowY: 'auto' }}>
+      <div style={{ flex: 1, padding: '4px 8px', overflowY: 'auto' }}>
         {panelGroup?.children?.map(item => {
           const isActive = location.pathname === item.key || location.pathname.startsWith(item.key + '/')
           return (
@@ -388,7 +402,6 @@ export default function MainLayout() {
                 whiteSpace:    'nowrap',
                 overflow:      'hidden',
                 textOverflow:  'ellipsis',
-                borderLeft:    isActive ? 'none' : '2px solid transparent',
               }}
             >
               {item.label}
