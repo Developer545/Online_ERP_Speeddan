@@ -112,6 +112,7 @@ model Emisor {
   catalogoCuentas CatalogoCuenta[] @relation("CatalogoCuentaEmpresa")
   periodosContables PeriodoContable[] @relation("PeriodoContableEmpresa")
   asientosContables AsientoContable[] @relation("AsientoContableEmpresa")
+  tiposAsiento      TipoAsientoConfig[] @relation("TipoAsientoConfigEmpresa")
 }
 
 model Sucursal {
@@ -590,13 +591,6 @@ enum EstadoPeriodo {
   CERRADO
 }
 
-enum TipoAsiento {
-  DIARIO
-  AJUSTE
-  CIERRE
-  APERTURA
-}
-
 enum EstadoAsiento {
   BORRADOR
   APROBADO
@@ -656,7 +650,7 @@ model AsientoContable {
   descripcion  String
   periodoId    Int
   periodo      PeriodoContable  @relation(fields: [periodoId], references: [id])
-  tipo         TipoAsiento      @default(DIARIO)
+  tipo         String           @default("DIARIO")
   estado       EstadoAsiento    @default(BORRADOR)
   documentoRef String?
   totalDebe    Decimal          @default(0)
@@ -704,6 +698,20 @@ model SaldoCuenta {
   @@unique([cuentaId, periodoId])
   @@index([empresaId])
   @@index([periodoId])
+}
+
+model TipoAsientoConfig {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  color     String   @default("blue")
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  empresaId Int?
+  empresa   Emisor? @relation("TipoAsientoConfigEmpresa", fields: [empresaId], references: [id])
+
+  @@unique([empresaId, nombre])
+  @@index([empresaId])
 }
 
 // AUDITORIA

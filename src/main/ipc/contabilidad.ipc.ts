@@ -78,4 +78,15 @@ export function registerContabilidadIPC() {
   ipcMain.handle('contabilidad:auxiliarCuenta', (_e, cuentaId: number, desde: string, hasta: string) =>
     contabilidadController.auxiliarCuenta(cuentaId, desde, hasta)
   )
+
+  // ── Tipos de Asiento ─────────────────────────────────────
+  ipcMain.handle('contabilidad:listarTiposAsiento', (_e, empresaId?: number) =>
+    contabilidadController.listarTiposAsiento(empresaId)
+  )
+  ipcMain.handle('contabilidad:crearTipoAsiento', (_e, data) =>
+    contabilidadController.crearTipoAsiento(data)
+  )
+  ipcMain.handle('contabilidad:eliminarTipoAsiento', (_e, id: number) =>
+    contabilidadController.eliminarTipoAsiento(id)
+  )
 }

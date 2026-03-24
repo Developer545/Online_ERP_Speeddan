@@ -252,4 +252,33 @@ router.get('/reportes/auxiliar', async (req: Request, res: Response) => {
   }
 })
 
+// ── Tipos de Asiento ────────────────────────────────────────
+router.get('/tipos-asiento', async (req: Request, res: Response) => {
+  try {
+    const empresaId = req.query.empresaId ? Number(req.query.empresaId) : undefined
+    const result = await contabilidadController.listarTiposAsiento(empresaId)
+    res.json(result)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+router.post('/tipos-asiento', async (req: Request, res: Response) => {
+  try {
+    const result = await contabilidadController.crearTipoAsiento(req.body)
+    res.json(result)
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+router.delete('/tipos-asiento/:id', async (req: Request, res: Response) => {
+  try {
+    const result = await contabilidadController.eliminarTipoAsiento(Number(req.params.id))
+    res.json(result)
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
 export default router

@@ -158,6 +158,10 @@ interface Window {
     libroMayor: (cuentaId: number, desde: string, hasta: string) => Promise<LibroMayorResult>
     libroDiario: (desde: string, hasta: string) => Promise<LibroDiarioResult>
     auxiliarCuenta: (cuentaId: number, desde: string, hasta: string) => Promise<LibroMayorResult>
+    // Tipos de Asiento
+    listarTiposAsiento: (empresaId?: number) => Promise<TipoAsientoConfigRow[]>
+    crearTipoAsiento: (data: { nombre: string; color?: string; empresaId?: number }) => Promise<TipoAsientoConfigRow>
+    eliminarTipoAsiento: (id: number) => Promise<TipoAsientoConfigRow>
   }
   documentos: {
     leerJson: (codigoGeneracion: string) => Promise<{ ok: boolean; json?: unknown; error?: string }>
@@ -167,6 +171,15 @@ interface Window {
 }
 
 // ── Rows ──────────────────────────────────────────────────
+
+interface TipoAsientoConfigRow {
+  id: number
+  nombre: string
+  color: string
+  activo: boolean
+  empresaId: number | null
+  createdAt: string
+}
 
 interface ClienteRow {
   id: number

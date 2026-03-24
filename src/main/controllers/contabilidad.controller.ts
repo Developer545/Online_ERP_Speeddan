@@ -766,5 +766,40 @@ export const contabilidadController = {
         }
       })
     }
+  },
+
+  // ═══════════════════════════════════════
+  // TIPOS DE ASIENTO
+  // ═══════════════════════════════════════
+
+  async listarTiposAsiento(empresaId?: number) {
+    return prisma.tipoAsientoConfig.findMany({
+      where: {
+        activo: true,
+        OR: [
+          { empresaId: null },
+          { empresaId: empresaId ?? undefined }
+        ]
+      },
+      orderBy: { id: 'asc' }
+    })
+  },
+
+  async crearTipoAsiento(data: { nombre: string; color?: string; empresaId?: number }) {
+    const nombre = data.nombre.trim().toUpperCase()
+    const exists = await prisma.tipoAsientoConfig.findFirst({
+      where: { nombre, OR: [{ empresaId: null }, { empresaId: data.empresaId ?? undefined }] }
+    })
+    if (exists) throw new Error(`El tipo "${nombre}" ya existe`)
+    return prisma.tipoAsientoConfig.create({
+      data: { nombre, color: data.color || 'blue', empresaId: data.empresaId ?? null }
+    })
+  },
+
+  async eliminarTipoAsiento(id: number) {
+    const tipo = await prisma.tipoAsientoConfig.findUnique({ where: { id } })
+    if (!tipo) throw new Error('Tipo no encontrado')
+    if (!tipo.empresaId) throw new Error('Los tipos por defecto no se pueden eliminar')
+    return prisma.tipoAsientoConfig.update({ where: { id }, data: { activo: false } })
   }
 }

@@ -240,7 +240,13 @@ const contabilidadAPI = {
   libroDiario: (desde: string, hasta: string) =>
     ipcRenderer.invoke('contabilidad:libroDiario', desde, hasta),
   auxiliarCuenta: (cuentaId: number, desde: string, hasta: string) =>
-    ipcRenderer.invoke('contabilidad:auxiliarCuenta', cuentaId, desde, hasta)
+    ipcRenderer.invoke('contabilidad:auxiliarCuenta', cuentaId, desde, hasta),
+  listarTiposAsiento: (empresaId?: number) =>
+    ipcRenderer.invoke('contabilidad:listarTiposAsiento', empresaId),
+  crearTipoAsiento: (data: unknown) =>
+    ipcRenderer.invoke('contabilidad:crearTipoAsiento', data),
+  eliminarTipoAsiento: (id: number) =>
+    ipcRenderer.invoke('contabilidad:eliminarTipoAsiento', id)
 }
 
 if (process.contextIsolated) {

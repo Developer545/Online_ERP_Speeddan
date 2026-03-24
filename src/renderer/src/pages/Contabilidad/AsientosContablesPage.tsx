@@ -7,7 +7,7 @@ import {
 import {
   PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined,
   CheckCircleOutlined, StopOutlined, EyeOutlined, MinusCircleOutlined,
-  FileTextOutlined, WarningOutlined, BookOutlined
+  FileTextOutlined, WarningOutlined, BookOutlined, SettingOutlined
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { formatCurrency } from '@utils/format'
@@ -56,6 +56,13 @@ export default function AsientosContablesPage() {
   const [loading, setLoading] = useState(false)
   const [periodos, setPeriodos] = useState<PeriodoContableRow[]>([])
   const [cuentas, setCuentas] = useState<CatalogoCuentaRow[]>([])
+  const [tipos, setTipos] = useState<TipoAsientoConfigRow[]>([])
+
+  // tipos modal
+  const [tiposModalOpen, setTiposModalOpen] = useState(false)
+  const [nuevoTipoNombre, setNuevoTipoNombre] = useState('')
+  const [nuevoTipoColor, setNuevoTipoColor] = useState('blue')
+  const [savingTipo, setSavingTipo] = useState(false)
 
   // filters
   const [page, setPage] = useState(1)
@@ -97,6 +104,13 @@ export default function AsientosContablesPage() {
     } catch { /* ignore */ }
   }, [])
 
+  const fetchTipos = useCallback(async () => {
+    try {
+      const res = await window.contabilidad.listarTiposAsiento()
+      setTipos(res)
+    } catch { /* ignore */ }
+  }, [])
+
   const fetchCuentas = useCallback(async () => {
     try {
       const res = await window.contabilidad.listarCuentas()
@@ -106,6 +120,7 @@ export default function AsientosContablesPage() {
 
   useEffect(() => { fetchPeriodos() }, [fetchPeriodos])
   useEffect(() => { fetchAsientos() }, [fetchAsientos])
+  useEffect(() => { fetchTipos() }, [fetchTipos])
 
   // ------------- KPIs ----------------
 
@@ -119,6 +134,31 @@ export default function AsientosContablesPage() {
   }, [asientos, total])
 
   // ------------- modal actions ----------------
+
+  const handleCrearTipo = async () => {
+    if (!nuevoTipoNombre.trim()) return
+    setSavingTipo(true)
+    try {
+      await window.contabilidad.crearTipoAsiento({ nombre: nuevoTipoNombre.trim(), color: nuevoTipoColor })
+      message.success('Tipo creado')
+      setNuevoTipoNombre('')
+      await fetchTipos()
+    } catch (e: any) {
+      message.error(e?.message ?? 'Error al crear tipo')
+    } finally {
+      setSavingTipo(false)
+    }
+  }
+
+  const handleEliminarTipo = async (id: number) => {
+    try {
+      await window.contabilidad.eliminarTipoAsiento(id)
+      message.success('Tipo eliminado')
+      fetchTipos()
+    } catch (e: any) {
+      message.error(e?.message ?? 'Error al eliminar tipo')
+    }
+  }
 
   const openCreate = () => {
     setEditingId(null)
@@ -586,14 +626,22 @@ export default function AsientosContablesPage() {
               </Form.Item>
             </Col>
             <Col span={4}>
-              <Form.Item name="tipo" label="Tipo" rules={[{ required: true, message: 'Requerido' }]} initialValue="DIARIO">
+              <Form.Item name="tipo" label={
+                <Space size={4}>
+                  <span>Tipo</span>
+                  <Tooltip title="Gestionar tipos">
+                    <SettingOutlined
+                      style={{ fontSize: 12, cursor: 'pointer', opacity: 0.6 }}
+                      onClick={() => setTiposModalOpen(true)}
+                    />
+                  </Tooltip>
+                </Space>
+              } rules={[{ required: true, message: 'Requerido' }]} initialValue="DIARIO">
                 <Select
-                  options={[
-                    { value: 'DIARIO', label: 'Diario' },
-                    { value: 'AJUSTE', label: 'Ajuste' },
-                    { value: 'CIERRE', label: 'Cierre' },
-                    { value: 'APERTURA', label: 'Apertura' }
-                  ]}
+                  options={tipos.map(t => ({
+                    value: t.nombre,
+                    label: <Tag color={t.color} style={{ margin: 0 }}>{t.nombre.charAt(0) + t.nombre.slice(1).toLowerCase()}</Tag>
+                  }))}
                 />
               </Form.Item>
             </Col>
@@ -808,6 +856,60 @@ export default function AsientosContablesPage() {
           </>
         )}
       </Drawer>
+
+      {/* ── Modal Gestionar Tipos ── */}
+      <Modal
+        title={<Space><SettingOutlined /> Gestionar Tipos de Asiento</Space>}
+        open={tiposModalOpen}
+        onCancel={() => setTiposModalOpen(false)}
+        footer={null}
+        width={440}
+      >
+        {/* Lista de tipos existentes */}
+        <div style={{ marginBottom: 16 }}>
+          {tipos.map(t => (
+            <div key={t.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--theme-border, #f0f0f0)' }}>
+              <Tag color={t.color}>{t.nombre}</Tag>
+              {t.empresaId !== null && (
+                <Popconfirm title="¿Eliminar este tipo?" onConfirm={() => handleEliminarTipo(t.id)} okText="Sí" cancelText="No">
+                  <Button size="small" danger icon={<DeleteOutlined />} type="text" />
+                </Popconfirm>
+              )}
+              {t.empresaId === null && <Text type="secondary" style={{ fontSize: 11 }}>predefinido</Text>}
+            </div>
+          ))}
+        </div>
+
+        {/* Crear nuevo tipo */}
+        <Divider style={{ margin: '12px 0' }}>Nuevo Tipo</Divider>
+        <Space.Compact style={{ width: '100%' }}>
+          <Input
+            placeholder="Nombre del tipo (ej: IMPORTACION)"
+            value={nuevoTipoNombre}
+            onChange={e => setNuevoTipoNombre(e.target.value.toUpperCase())}
+            onPressEnter={handleCrearTipo}
+            maxLength={30}
+            style={{ flex: 1 }}
+          />
+          <Select
+            value={nuevoTipoColor}
+            onChange={setNuevoTipoColor}
+            style={{ width: 100 }}
+            options={[
+              { value: 'blue', label: <Tag color="blue">Azul</Tag> },
+              { value: 'green', label: <Tag color="green">Verde</Tag> },
+              { value: 'orange', label: <Tag color="orange">Naranja</Tag> },
+              { value: 'red', label: <Tag color="red">Rojo</Tag> },
+              { value: 'purple', label: <Tag color="purple">Morado</Tag> },
+              { value: 'cyan', label: <Tag color="cyan">Cian</Tag> },
+              { value: 'gold', label: <Tag color="gold">Dorado</Tag> },
+            ]}
+          />
+          <Button type="primary" icon={<PlusOutlined />} loading={savingTipo} onClick={handleCrearTipo}>
+            Crear
+          </Button>
+        </Space.Compact>
+      </Modal>
     </div>
   )
 }

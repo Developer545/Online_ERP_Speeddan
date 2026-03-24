@@ -482,7 +482,13 @@ export function initializeWebMock(): void {
     libroDiario: async (desde: string, hasta: string) =>
       apiFetch(`/contabilidad/reportes/libro-diario?desde=${desde}&hasta=${hasta}`),
     auxiliarCuenta: async (cuentaId: number, desde: string, hasta: string) =>
-      apiFetch(`/contabilidad/reportes/auxiliar?cuentaId=${cuentaId}&desde=${desde}&hasta=${hasta}`)
+      apiFetch(`/contabilidad/reportes/auxiliar?cuentaId=${cuentaId}&desde=${desde}&hasta=${hasta}`),
+    listarTiposAsiento: async (empresaId?: number) =>
+      apiFetch(`/contabilidad/tipos-asiento${empresaId ? `?empresaId=${empresaId}` : ''}`),
+    crearTipoAsiento: async (data: unknown) =>
+      apiFetch('/contabilidad/tipos-asiento', { method: 'POST', body: JSON.stringify(data) }),
+    eliminarTipoAsiento: async (id: number) =>
+      apiFetch(`/contabilidad/tipos-asiento/${id}`, { method: 'DELETE' })
   }
 
   // ── Notificaciones (no aplica en web) ─────────────────────
