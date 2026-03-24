@@ -1,15 +1,17 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Card, Table, Button, Form, Modal, Input, Select, Space, Row, Col,
   Statistic, message, Tag, TreeSelect, Popconfirm, Typography, InputNumber,
-  Checkbox
+  Checkbox, Alert, Divider, Steps, Upload
 } from 'antd'
 import {
   PlusOutlined, ReloadOutlined, DeleteOutlined, EditOutlined,
   ImportOutlined, CheckOutlined, CloseOutlined, SearchOutlined,
-  AccountBookOutlined, ApartmentOutlined
+  AccountBookOutlined, ApartmentOutlined, DownloadOutlined,
+  FileExcelOutlined, WarningOutlined, CloudUploadOutlined
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
+import * as XLSX from 'xlsx'
 
 const { Text } = Typography
 
@@ -30,6 +32,118 @@ const TIPO_COLORS: Record<string, string> = {
   CIERRE: 'default',
   ORDEN_DEUDORA: 'cyan',
   ORDEN_ACREEDORA: 'magenta'
+}
+
+const TIPOS_VALIDOS = ['ACTIVO','PASIVO','PATRIMONIO','INGRESO','COSTO','GASTO','CIERRE','ORDEN_DEUDORA','ORDEN_ACREEDORA']
+const NATURALEZAS_VALIDAS = ['DEUDORA','ACREEDORA']
+
+interface FilaCatalogo {
+  codigo: string
+  nombre: string
+  tipo: string
+  naturaleza: string
+  nivel: number
+  codigo_padre: string
+  acepta_movimiento: boolean
+  descripcion: string
+  // validacion
+  errores: string[]
+  fila: number
+}
+
+// ── Descarga plantilla Excel ──────────────────────────────
+function descargarPlantilla() {
+  const headers = ['codigo','nombre','tipo','naturaleza','nivel','codigo_padre','acepta_movimiento','descripcion']
+  const ejemplos = [
+    ['1','Activo','ACTIVO','DEUDORA',1,'','NO','Grupo activos'],
+    ['11','Activo Corriente','ACTIVO','DEUDORA',2,'1','NO',''],
+    ['1101','Efectivo y Equivalentes','ACTIVO','DEUDORA',3,'11','NO',''],
+    ['110101','Caja General','ACTIVO','DEUDORA',4,'1101','SI','Efectivo en caja principal'],
+    ['110102','Caja Chica','ACTIVO','DEUDORA',4,'1101','SI',''],
+    ['110103','Bancos','ACTIVO','DEUDORA',4,'1101','SI',''],
+    ['2','Pasivo','PASIVO','ACREEDORA',1,'','NO',''],
+    ['21','Pasivo Corriente','PASIVO','ACREEDORA',2,'2','NO',''],
+    ['2101','Proveedores','PASIVO','ACREEDORA',3,'21','SI',''],
+  ]
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...ejemplos])
+  ws['!cols'] = [14,35,16,12,8,16,18,30].map(w => ({ wch: w }))
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Catalogo')
+  XLSX.writeFile(wb, 'plantilla_catalogo_cuentas.xlsx')
+}
+
+// ── Parsea y valida archivo Excel/CSV ─────────────────────
+function parsearArchivo(file: File): Promise<FilaCatalogo[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = e => {
+      try {
+        const data = new Uint8Array(e.target!.result as ArrayBuffer)
+        const wb = XLSX.read(data, { type: 'array' })
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        const rows: string[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as string[][]
+
+        if (rows.length < 2) { reject(new Error('El archivo está vacío o sin datos')); return }
+
+        // Detectar índice de columnas desde el header (case-insensitive, permite variantes)
+        const header = rows[0].map(h => String(h).toLowerCase().trim().replace(/\s+/g,'_'))
+        const idx = (names: string[]) => names.reduce((f, n) => f >= 0 ? f : header.indexOf(n), -1)
+
+        const iCodigo   = idx(['codigo','code','cuenta'])
+        const iNombre   = idx(['nombre','name','descripcion_cuenta','descripcion cuenta'])
+        const iTipo     = idx(['tipo','type','tipo_cuenta'])
+        const iNat      = idx(['naturaleza','nat','naturaleza_cuenta'])
+        const iNivel    = idx(['nivel','level','profundidad'])
+        const iPadre    = idx(['codigo_padre','padre','parent','cuenta_padre','codigopadre'])
+        const iMov      = idx(['acepta_movimiento','movimiento','mov','acepta movimiento'])
+        const iDesc     = idx(['descripcion','description','obs','observacion'])
+
+        if (iCodigo < 0) { reject(new Error('No se encontró columna "codigo"')); return }
+        if (iNombre < 0) { reject(new Error('No se encontró columna "nombre"')); return }
+
+        const codigos = new Set<string>()
+        const resultado: FilaCatalogo[] = []
+
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i]
+          if (!r || r.every(c => !c)) continue // fila vacía
+
+          const codigo   = String(r[iCodigo] ?? '').trim()
+          const nombre   = String(r[iNombre] ?? '').trim()
+          const tipo     = String(r[iTipo] ?? '').trim().toUpperCase()
+          const nat      = String(r[iNat] ?? '').trim().toUpperCase()
+          const nivel    = parseInt(String(r[iNivel] ?? '1')) || 1
+          const padre    = iPadre >= 0 ? String(r[iPadre] ?? '').trim() : ''
+          const movRaw   = String(r[iMov] ?? 'NO').trim().toUpperCase()
+          const mov      = movRaw === 'SI' || movRaw === 'YES' || movRaw === '1' || movRaw === 'TRUE'
+          const desc     = iDesc >= 0 ? String(r[iDesc] ?? '').trim() : ''
+
+          const errores: string[] = []
+          if (!codigo) errores.push('Código vacío')
+          if (!nombre) errores.push('Nombre vacío')
+          if (codigo && codigos.has(codigo)) errores.push(`Código duplicado: ${codigo}`)
+          if (codigo) codigos.add(codigo)
+          if (tipo && !TIPOS_VALIDOS.includes(tipo)) errores.push(`Tipo inválido: "${tipo}"`)
+          if (nat && !NATURALEZAS_VALIDAS.includes(nat)) errores.push(`Naturaleza inválida: "${nat}"`)
+
+          resultado.push({ codigo, nombre, tipo, naturaleza: nat, nivel, codigo_padre: padre, acepta_movimiento: mov, descripcion: desc, errores, fila: i + 1 })
+        }
+
+        // Validar que codigo_padre exista en el mismo archivo
+        for (const f of resultado) {
+          if (f.codigo_padre && !codigos.has(f.codigo_padre)) {
+            f.errores.push(`codigo_padre "${f.codigo_padre}" no existe en el archivo`)
+          }
+        }
+
+        resolve(resultado)
+      } catch (err: any) {
+        reject(new Error(`Error al leer el archivo: ${err.message}`))
+      }
+    }
+    reader.onerror = () => reject(new Error('Error al leer el archivo'))
+    reader.readAsArrayBuffer(file)
+  })
 }
 
 /** Build tree structure for Table expandable rows */
@@ -104,6 +218,14 @@ export default function CatalogoCuentasPage() {
   const [form] = Form.useForm()
 
   const [importando, setImportando] = useState(false)
+
+  // import CSV/Excel
+  const [importModalOpen, setImportModalOpen] = useState(false)
+  const [importStep, setImportStep] = useState(0)       // 0=subir 1=preview 2=listo
+  const [filasImport, setFilasImport] = useState<FilaCatalogo[]>([])
+  const [importErrors, setImportErrors] = useState<string[]>([])
+  const [importandoCustom, setImportandoCustom] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ── Cargar datos ──────────────────────────────────────────
   const cargar = useCallback(async (b = busqueda, t = filtroTipo) => {
@@ -193,6 +315,52 @@ export default function CatalogoCuentasPage() {
     } catch {
       message.error('Error al eliminar cuenta')
     }
+  }
+
+  const handleArchivoSeleccionado = async (file: File) => {
+    try {
+      const filas = await parsearArchivo(file)
+      setFilasImport(filas)
+      const errs = filas.flatMap(f => f.errores.map(e => `Fila ${f.fila}: ${e}`))
+      setImportErrors(errs)
+      setImportStep(1)
+    } catch (err: any) {
+      message.error(err.message)
+    }
+  }
+
+  const confirmarImportacion = async () => {
+    const validas = filasImport.filter(f => f.errores.length === 0)
+    if (validas.length === 0) { message.error('No hay filas válidas para importar'); return }
+    setImportandoCustom(true)
+    try {
+      const payload = validas.map(f => ({
+        codigo: f.codigo,
+        nombre: f.nombre,
+        tipo: f.tipo,
+        naturaleza: f.naturaleza,
+        nivel: f.nivel,
+        codigoPadre: f.codigo_padre || null,
+        aceptaMovimiento: f.acepta_movimiento,
+        descripcion: f.descripcion || undefined
+      }))
+      const result = await window.contabilidad.importarCatalogo(payload)
+      message.success(`Catálogo importado: ${result.created} cuentas nuevas de ${result.total}`)
+      setImportStep(2)
+      cargar()
+    } catch (err: any) {
+      message.error(err.message ?? 'Error al importar')
+    } finally {
+      setImportandoCustom(false)
+    }
+  }
+
+  const resetImport = () => {
+    setImportStep(0)
+    setFilasImport([])
+    setImportErrors([])
+    setImportModalOpen(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const importarCatalogo = async () => {
@@ -364,11 +532,17 @@ export default function CatalogoCuentasPage() {
               Recargar
             </Button>
             <Button
+              icon={<FileExcelOutlined />}
+              onClick={() => { setImportStep(0); setImportModalOpen(true) }}
+            >
+              Importar Excel/CSV
+            </Button>
+            <Button
               icon={<ImportOutlined />}
               onClick={importarCatalogo}
               loading={importando}
             >
-              Importar Catálogo Estándar SV
+              Catálogo Estándar SV
             </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={abrirCrear}>
               Nueva Cuenta
@@ -390,6 +564,143 @@ export default function CatalogoCuentasPage() {
           scroll={{ y: 'calc(100vh - 380px)' }}
         />
       </Card>
+
+      {/* ── Modal Importar Excel/CSV ── */}
+      <Modal
+        title={<Space><FileExcelOutlined style={{ color: '#52c41a' }} /> Importar Catálogo desde Excel / CSV</Space>}
+        open={importModalOpen}
+        onCancel={resetImport}
+        width={900}
+        footer={null}
+        destroyOnClose
+      >
+        <Steps
+          current={importStep}
+          size="small"
+          style={{ marginBottom: 20 }}
+          items={[
+            { title: 'Subir archivo' },
+            { title: 'Validar y confirmar' },
+            { title: 'Importado' }
+          ]}
+        />
+
+        {/* Paso 0: subir archivo */}
+        {importStep === 0 && (
+          <div>
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message="Instrucciones"
+              description={
+                <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13 }}>
+                  <li>Descarga la plantilla, llénala con tu catálogo y súbela.</li>
+                  <li>El campo <b>codigo</b> puede usar cualquier formato: <code>1101</code>, <code>11-01-001</code>, <code>11.01.02</code></li>
+                  <li><b>codigo_padre</b> debe coincidir exactamente con el código del padre. Déjalo vacío para cuentas raíz (nivel 1).</li>
+                  <li>Solo las cuentas hoja (sin subcuentas) deben tener <b>acepta_movimiento = SI</b>.</li>
+                  <li>Tipos válidos: ACTIVO · PASIVO · PATRIMONIO · INGRESO · COSTO · GASTO · CIERRE · ORDEN_DEUDORA · ORDEN_ACREEDORA</li>
+                </ul>
+              }
+            />
+            <Space>
+              <Button icon={<DownloadOutlined />} onClick={descargarPlantilla} type="dashed">
+                Descargar Plantilla Excel
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleArchivoSeleccionado(f) }}
+              />
+              <Button
+                type="primary"
+                icon={<CloudUploadOutlined />}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Seleccionar archivo (.xlsx / .csv)
+              </Button>
+            </Space>
+          </div>
+        )}
+
+        {/* Paso 1: preview y validación */}
+        {importStep === 1 && (
+          <div>
+            {importErrors.length > 0 && (
+              <Alert
+                type="warning"
+                showIcon
+                icon={<WarningOutlined />}
+                style={{ marginBottom: 12 }}
+                message={`${importErrors.length} error(es) encontrados — las filas con error NO se importarán`}
+                description={
+                  <ul style={{ margin: 0, paddingLeft: 16, maxHeight: 120, overflowY: 'auto', fontSize: 12 }}>
+                    {importErrors.slice(0, 20).map((e, i) => <li key={i}>{e}</li>)}
+                    {importErrors.length > 20 && <li>...y {importErrors.length - 20} más</li>}
+                  </ul>
+                }
+              />
+            )}
+
+            <div style={{ marginBottom: 8 }}>
+              <Space>
+                <Tag color="green">{filasImport.filter(f => f.errores.length === 0).length} cuentas válidas</Tag>
+                {importErrors.length > 0 && <Tag color="red">{filasImport.filter(f => f.errores.length > 0).length} con errores</Tag>}
+                <Text type="secondary" style={{ fontSize: 12 }}>Solo se importarán las cuentas válidas</Text>
+              </Space>
+            </div>
+
+            <Table
+              size="small"
+              rowKey="fila"
+              dataSource={filasImport}
+              scroll={{ y: 320, x: 700 }}
+              pagination={false}
+              rowClassName={r => r.errores.length > 0 ? 'import-row-error' : ''}
+              columns={[
+                { title: '#', dataIndex: 'fila', width: 50 },
+                { title: 'Código', dataIndex: 'codigo', width: 120, render: v => <Text code style={{ fontSize: 12 }}>{v}</Text> },
+                { title: 'Nombre', dataIndex: 'nombre', ellipsis: true },
+                { title: 'Tipo', dataIndex: 'tipo', width: 130, render: v => <Tag color={TIPO_COLORS[v] || 'default'} style={{ fontSize: 11 }}>{v}</Tag> },
+                { title: 'Padre', dataIndex: 'codigo_padre', width: 100, render: v => v ? <Text code style={{ fontSize: 12 }}>{v}</Text> : <Text type="secondary">—</Text> },
+                { title: 'Mov', dataIndex: 'acepta_movimiento', width: 60, align: 'center', render: v => v ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CloseOutlined style={{ color: '#aaa' }} /> },
+                {
+                  title: 'Estado', width: 80, align: 'center',
+                  render: (_, r) => r.errores.length > 0
+                    ? <Tag color="error" title={r.errores.join('\n')}>Error</Tag>
+                    : <Tag color="success">OK</Tag>
+                }
+              ]}
+            />
+
+            <Divider style={{ margin: '12px 0' }} />
+            <Space>
+              <Button onClick={() => setImportStep(0)}>← Cambiar archivo</Button>
+              <Button
+                type="primary"
+                icon={<ImportOutlined />}
+                loading={importandoCustom}
+                disabled={filasImport.filter(f => f.errores.length === 0).length === 0}
+                onClick={confirmarImportacion}
+              >
+                Importar {filasImport.filter(f => f.errores.length === 0).length} cuentas
+              </Button>
+            </Space>
+          </div>
+        )}
+
+        {/* Paso 2: éxito */}
+        {importStep === 2 && (
+          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <CheckOutlined style={{ fontSize: 48, color: '#52c41a', display: 'block', marginBottom: 16 }} />
+            <Text strong style={{ fontSize: 16 }}>¡Catálogo importado correctamente!</Text>
+            <br /><br />
+            <Button type="primary" onClick={resetImport}>Cerrar</Button>
+          </div>
+        )}
+      </Modal>
 
       {/* Modal Crear/Editar */}
       <Modal
