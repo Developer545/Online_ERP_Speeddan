@@ -17,8 +17,8 @@ export default function LoginPage() {
   const [switching, setSwitching] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const logoRef = useRef<HTMLDivElement>(null)
-  const { currentTheme } = useTheme()
-  const isDarkTheme = currentTheme.isDark
+  useTheme() // mantiene el provider activo
+  const isDarkTheme = true // login siempre oscuro (independiente del tema del usuario)
 
   // Leer el entorno activo desde el proceso principal
   useEffect(() => {
